@@ -53,7 +53,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	helm.sh/helm/v3 v3.6.1
 	k8s.io/api v0.21.0
-	k8s.io/apimachinery v0.21.0
+	k8s.io/apimachinery v0.22.0
 	k8s.io/client-go v10.0.0+incompatible
 	modernc.org/sqlite v1.11.1
 	sigs.k8s.io/kustomize/api v0.8.5

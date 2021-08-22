@@ -10,7 +10,7 @@ replace (
 )
 
 require (
-	cloud.google.com/go v0.65.0
+	cloud.google.com/go v0.81.0
 	github.com/Azure/azure-sdk-for-go v56.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.18
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
@@ -45,19 +45,19 @@ require (
 	github.com/moby/buildkit v0.8.3
 	github.com/onsi/ginkgo v1.15.1
 	github.com/onsi/gomega v1.11.0
-	github.com/open-policy-agent/opa v0.22.0
+	github.com/open-policy-agent/opa v0.31.0
 	github.com/owenrumney/go-sarif v1.0.4
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/afero v1.6.0
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
 	github.com/stretchr/testify v1.7.0
 	github.com/zclconf/go-cty v1.8.3
-	go.uber.org/zap v1.16.0
+	go.uber.org/zap v1.17.0
 	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069
 	golang.org/x/tools v0.1.5 // indirect
-	google.golang.org/api v0.34.0
-	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
+	google.golang.org/api v0.44.0
+	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	helm.sh/helm/v3 v3.6.1

@@ -11,7 +11,6 @@ replace (
 
 require (
 	cloud.google.com/go v0.65.0
-	github.com/Azure/azure-sdk-for-go v56.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.18
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
 	github.com/BurntSushi/toml v0.4.1 // indirect
@@ -54,15 +53,16 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/zclconf/go-cty v1.8.3
 	go.uber.org/zap v1.16.0
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069
-	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/api v0.34.0
 	google.golang.org/genproto v0.0.0-20201110150050-8816d57aaa9a
 	gopkg.in/src-d/go-git.v4 v4.13.1
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	helm.sh/helm/v3 v3.6.1
 	k8s.io/api v0.21.0
-	k8s.io/apimachinery v0.21.0
+	k8s.io/apimachinery v0.22.1
 	k8s.io/client-go v10.0.0+incompatible
 	modernc.org/sqlite v1.11.1
 	sigs.k8s.io/kustomize/api v0.8.11

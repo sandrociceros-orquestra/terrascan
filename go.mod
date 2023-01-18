@@ -12,8 +12,8 @@ replace (
 require (
 	cloud.google.com/go v0.65.0
 	github.com/Azure/azure-sdk-for-go v56.2.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.11.18
-	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2
+	github.com/Azure/go-autorest/autorest v0.11.24
+	github.com/Azure/go-autorest/autorest/azure/auth v0.5.12
 	github.com/BurntSushi/toml v0.4.1 // indirect
 	github.com/GoogleCloudPlatform/docker-credential-gcr v2.0.5+incompatible
 	github.com/VerbalExpressions/GoVerbalExpressions v0.0.0-20200410162751-4d76a1099a6e

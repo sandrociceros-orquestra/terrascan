@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,8 +19,9 @@ package webhook
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 
-	httputils "github.com/accurics/terrascan/pkg/utils/http"
+	httputils "github.com/tenable/terrascan/pkg/utils/http"
 	"go.uber.org/zap"
 )
 
@@ -30,7 +31,7 @@ var (
 	ErrNilConfigData = fmt.Errorf("config data is nil")
 )
 
-// Init initalizes the webhook notifier, reads config file and configures the
+// Init initializes the webhook notifier, reads config file and configures the
 // necessary parameters for webhook notifications to work
 func (w *Webhook) Init(config interface{}) error {
 	// return error if config data is not present
@@ -45,7 +46,7 @@ func (w *Webhook) Init(config interface{}) error {
 		return errInitFailed
 	}
 
-	// initalize Webhook struct with url and token
+	// initialize Webhook struct with url and token
 
 	jsonData, err := json.Marshal(webhookConfig)
 	if err != nil {
@@ -71,7 +72,7 @@ func (w *Webhook) SendNotification(data interface{}) error {
 	dataBytes, _ := json.Marshal(data)
 
 	// make http POST request
-	resp, err := httputils.SendPOSTRequest(w.URL, w.Token, dataBytes)
+	resp, err := httputils.SendPOSTRequest(w.URL, w.Token, dataBytes, http.Header{})
 	if err != nil {
 		zap.S().Errorf("failed to send webhook notification. error: '%v'", err)
 		return err

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,10 +17,8 @@
 package config
 
 import (
-	"encoding/base64"
-	"unicode"
-
-	"github.com/awslabs/goformation/v5/cloudformation/autoscaling"
+	"github.com/awslabs/goformation/v7/cloudformation/autoscaling"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // EbsBlockDeviceBlock holds config for EbsBlockDevice
@@ -47,39 +45,38 @@ type AutoScalingLaunchConfigurationConfig struct {
 }
 
 // GetAutoScalingLaunchConfigurationConfig returns config for AutoScalingLaunchConfiguration
+// aws_launch_configuration
 func GetAutoScalingLaunchConfigurationConfig(l *autoscaling.LaunchConfiguration) []AWSResourceConfig {
-	ebsBlockDevice := make([]EbsBlockDeviceBlock, len(l.BlockDeviceMappings))
-
-	for i := range l.BlockDeviceMappings {
-		if l.BlockDeviceMappings[i].Ebs != nil {
-			ebsBlockDevice[i].Encrypted = l.BlockDeviceMappings[i].Ebs.Encrypted
-			ebsBlockDevice[i].DeleteOnTermination = l.BlockDeviceMappings[i].Ebs.DeleteOnTermination
+	var ebsBlockDevice []EbsBlockDeviceBlock
+	if l.BlockDeviceMappings != nil {
+		blockDeviceMappingLen := len(l.BlockDeviceMappings)
+		ebsBlockDevice = make([]EbsBlockDeviceBlock, blockDeviceMappingLen)
+		for i, blockDeviceMapping := range l.BlockDeviceMappings {
+			if blockDeviceMapping.Ebs != nil {
+				ebsBlockDevice[i].Encrypted = functions.GetVal(blockDeviceMapping.Ebs.Encrypted)
+				ebsBlockDevice[i].DeleteOnTermination = functions.GetVal(blockDeviceMapping.Ebs.DeleteOnTermination)
+			}
+			ebsBlockDevice[i].DeviceName = blockDeviceMapping.DeviceName
 		}
-		ebsBlockDevice[i].DeviceName = l.BlockDeviceMappings[i].DeviceName
 	}
 
 	var metadataOptions MetadataOptionsBlock
 	if l.MetadataOptions != nil {
-		metadataOptions.HTTPEndpoint = l.MetadataOptions.HttpEndpoint
-		metadataOptions.HTTPTokens = l.MetadataOptions.HttpTokens
+		metadataOptions.HTTPEndpoint = functions.GetVal(l.MetadataOptions.HttpEndpoint)
+		metadataOptions.HTTPTokens = functions.GetVal(l.MetadataOptions.HttpTokens)
 	}
 
 	cf := AutoScalingLaunchConfigurationConfig{
 		Config: Config{
-			Name: l.LaunchConfigurationName,
+			Name: functions.GetVal(l.LaunchConfigurationName),
 		},
-		EnableMonitoring: l.InstanceMonitoring,
+		EnableMonitoring: functions.GetVal(l.InstanceMonitoring),
 		MetadataOptions:  metadataOptions,
 		EbsBlockDevice:   ebsBlockDevice,
 	}
 
-	data, err := base64.StdEncoding.Strict().DecodeString(l.UserData)
-	datastr := string(data)
-
-	if isASCII(datastr) && err == nil {
-		cf.UserDataBase64 = l.UserData
-	} else {
-		cf.UserData = l.UserData
+	if l.UserData != nil {
+		cf.UserDataBase64 = *l.UserData
 	}
 
 	return []AWSResourceConfig{{
@@ -88,11 +85,12 @@ func GetAutoScalingLaunchConfigurationConfig(l *autoscaling.LaunchConfiguration)
 	}}
 }
 
-func isASCII(s string) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] > unicode.MaxASCII {
-			return false
-		}
-	}
-	return true
-}
+// isASCII  not in use as we dont need to convert base64 data to string for iac scanning
+// func isASCII(s string) bool {
+// 	for i := 0; i < len(s); i++ {
+// 		if s[i] > unicode.MaxASCII {
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }

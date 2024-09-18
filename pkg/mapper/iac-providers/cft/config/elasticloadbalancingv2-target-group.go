@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/elasticloadbalancingv2"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticloadbalancingv2"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // ElasticLoadBalancingV2TargetGroupConfig holds config for aws_lb_target_group
@@ -27,15 +28,16 @@ type ElasticLoadBalancingV2TargetGroupConfig struct {
 }
 
 // GetElasticLoadBalancingV2TargetGroupConfig returns config for aws_lb_target_group
+// aws_lb_target_group
 func GetElasticLoadBalancingV2TargetGroupConfig(l *elasticloadbalancingv2.TargetGroup) []AWSResourceConfig {
 	// create a listener subresource per DefaultAction defined in cft
 	// as only one default action per listener is possible in terraform
 	cf := ElasticLoadBalancingV2TargetGroupConfig{
 		Config: Config{
-			Name: l.Name,
-			Tags: l.Tags,
+			Name: functions.GetVal(l.Name),
+			Tags: functions.PatchAWSTags(l.Tags),
 		},
-		Protocol: l.Protocol,
+		Protocol: functions.GetVal(l.Protocol),
 	}
 
 	return []AWSResourceConfig{{

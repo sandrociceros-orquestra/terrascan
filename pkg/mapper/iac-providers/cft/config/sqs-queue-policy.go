@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/sqs"
+	"github.com/awslabs/goformation/v7/cloudformation/sqs"
 )
 
 // SqsQueuePolicyConfig holds config for SqsQueuePolicy
@@ -30,6 +30,7 @@ type SqsQueuePolicyConfig struct {
 }
 
 // GetSqsQueuePolicyConfig returns config for SqsQueuePolicy
+// aws_sqs_queue_policy no policy
 func GetSqsQueuePolicyConfig(p *sqs.QueuePolicy) []AWSResourceConfig {
 	policyDoc, _ := json.Marshal(p.PolicyDocument)
 

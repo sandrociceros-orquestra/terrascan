@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,18 +18,18 @@ package downloader
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-version"
 	hclConfigs "github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/hashicorp/terraform/registry/response"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 var (
@@ -213,7 +213,7 @@ func TestCleanUp(t *testing.T) {
 	t.Run("test cache clean up", func(t *testing.T) {
 
 		// create temp dir
-		tempDir, err := ioutil.TempDir("", "")
+		tempDir, err := os.MkdirTemp("", "")
 		if err != nil {
 			t.Errorf("failed to create temp dir. error: '%v'", err)
 		}
@@ -238,7 +238,7 @@ func TestDownloadRemoteModule(t *testing.T) {
 
 	// disable terraform logs when TF_LOG env variable is not set
 	if os.Getenv("TF_LOG") == "" {
-		log.SetOutput(ioutil.Discard)
+		log.SetOutput(io.Discard)
 	}
 
 	testConstraintsSecurityGroup, _ := version.NewConstraint("3.17.0")
@@ -560,7 +560,7 @@ func TestAuthenticatedRegistryClient(t *testing.T) {
 		},
 		{
 			name:     "invalid terraformrc file",
-			filename: "nonexistantfile",
+			filename: "nonexistentfile",
 		},
 	}
 	for _, tt := range tests {
@@ -597,7 +597,7 @@ func TestBuildDiscoServices(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testRCFilePath := filepath.Join(testDirPath, tt.filename)
-			b, err := ioutil.ReadFile(testRCFilePath)
+			b, err := os.ReadFile(testRCFilePath)
 			if err != nil {
 				t.Errorf("Error reading %s: %s", testRCFilePath, err)
 				return

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/kms"
+	"github.com/awslabs/goformation/v7/cloudformation/kms"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // KmsKeyConfig holds config for aws_kms_key
@@ -33,14 +34,15 @@ type KmsKeyConfig struct {
 }
 
 // GetKmsKeyConfig returns config for aws_kms_key
+// aws_kms_key
 func GetKmsKeyConfig(k *kms.Key) []AWSResourceConfig {
 	cf := KmsKeyConfig{
 		Config: Config{
-			Tags: k.Tags,
+			Tags: functions.PatchAWSTags(k.Tags),
 		},
-		Enabled:             k.Enabled,
-		EnableKeyRotation:   k.EnableKeyRotation,
-		PendingWindowInDays: k.PendingWindowInDays,
+		Enabled:             functions.GetVal(k.Enabled),
+		EnableKeyRotation:   functions.GetVal(k.EnableKeyRotation),
+		PendingWindowInDays: functions.GetVal(k.PendingWindowInDays),
 	}
 
 	keyPolicy, err := json.Marshal(k.KeyPolicy)

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,21 +19,24 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/s3"
+	"github.com/awslabs/goformation/v7/cloudformation/s3"
 )
 
 // S3BucketPolicyConfig holds config for aws_s3_bucket_policy
 type S3BucketPolicyConfig struct {
 	Config
 	PolicyDocument string `json:"policy"`
+	Bucket         string `json:"bucket"`
 }
 
 // GetS3BucketPolicyConfig returns config for aws_s3_bucket_policy
+// aws_s3_bucket_policy
 func GetS3BucketPolicyConfig(p *s3.BucketPolicy) []AWSResourceConfig {
 	cf := S3BucketPolicyConfig{
 		Config: Config{
 			Name: p.Bucket,
 		},
+		Bucket: p.Bucket,
 	}
 
 	policyDocument, err := json.Marshal(p.PolicyDocument)

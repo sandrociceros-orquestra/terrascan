@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -85,7 +85,7 @@ func (dc *DockerV1) LoadIacFile(absFilePath string, options map[string]interface
 	}
 
 	// Creates config for entire dockerfile which has array of instructions against the Config field.
-	// Created to use against policies which checks for availablility of command/instruction in dockerfile
+	// Created to use against policies which checks for availability of command/instruction in dockerfile
 	// if command is not present line no also doesnot have any importance thats why set to 1.
 	config := output.ResourceConfig{
 		Name:        filepath.Base(absFilePath),

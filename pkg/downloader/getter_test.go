@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -53,25 +53,25 @@ func TestGetURLSubDir(t *testing.T) {
 	}{
 		{
 			name:       "github url no subdir",
-			URL:        "github.com/accurics/terrascan",
+			URL:        "github.com/tenable/terrascan",
 			dest:       someDest,
-			wantURL:    "git::https://github.com/accurics/terrascan.git",
+			wantURL:    "git::https://github.com/tenable/terrascan.git",
 			wantSubDir: "",
 			wantErr:    nil,
 		},
 		{
 			name:       "github url with subdir",
-			URL:        "github.com/accurics/terrascan//some-subdir",
+			URL:        "github.com/tenable/terrascan//some-subdir",
 			dest:       someDest,
-			wantURL:    "git::https://github.com/accurics/terrascan.git",
+			wantURL:    "git::https://github.com/tenable/terrascan.git",
 			wantSubDir: someSubdir,
 			wantErr:    nil,
 		},
 		{
 			name:       "github ssh url",
-			URL:        "git@github.com:accurics/terrascan.git//some-subdir",
+			URL:        "git@github.com:tenable/terrascan.git//some-subdir",
 			dest:       someDest,
-			wantURL:    "git::ssh://git@github.com/accurics/terrascan.git",
+			wantURL:    "git::ssh://git@github.com/tenable/terrascan.git",
 			wantSubDir: someSubdir,
 			wantErr:    nil,
 		},
@@ -173,7 +173,7 @@ func TestDownload(t *testing.T) {
 			wantErr:  fmt.Errorf("GitHub URLs should be github.com/username/repo"),
 		},
 		{
-			name:          "valid url, non existing repo",
+			name:          "valid url, nonexistent repo",
 			URL:           "https://:@github.com/testuser/testrepo",
 			dest:          someDest,
 			wantDest:      "",
@@ -274,7 +274,7 @@ func TestDownloadWithType(t *testing.T) {
 			wantErr:  fmt.Errorf("%s, is not a valid terraform registry", testInvalidRegistrySource),
 		},
 		{
-			name:          "terraform-registry remote type with valid non-existent source addr",
+			name:          "terraform-registry remote type with valid nonexistent source addr",
 			Type:          remoteTypeTerraformRegistry,
 			URL:           testValidNonExistentRegistrySource,
 			dest:          someDest,

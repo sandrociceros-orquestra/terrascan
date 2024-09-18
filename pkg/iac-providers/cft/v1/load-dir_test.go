@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package cftv1
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -31,13 +30,13 @@ import (
 	gitConfig "gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 const (
-	repoURL  = "https://github.com/accurics/KaiMonkey.git"
+	repoURL  = "https://github.com/tenable/kaimonkey.git"
 	branch   = "master"
 	basePath = "artifacts"
 	provider = "cft"
@@ -114,7 +113,7 @@ func TestLoadIacDir(t *testing.T) {
 
 func TestCFTMapper(t *testing.T) {
 	root := filepath.Join(basePath, provider)
-	dirList, err := ioutil.ReadDir(root)
+	dirList, err := os.ReadDir(root)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,7 +126,7 @@ func TestCFTMapper(t *testing.T) {
 
 			// load expected output.json from test artifacts
 			var testArc output.AllResourceConfigs
-			outputData, err := ioutil.ReadFile(filepath.Join(resourceDir, "output.json"))
+			outputData, err := os.ReadFile(filepath.Join(resourceDir, "output.json"))
 			if err != nil {
 				t.Errorf("error reading output.json ResourceConfig, %T", err)
 			}

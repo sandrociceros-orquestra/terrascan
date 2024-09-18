@@ -9,7 +9,7 @@ make cicd
 ```
 
 ### Bump version in source code
-Once tests look clean, edit `pkg/version/version.go` and update the version number around line 20.
+Once tests look clean, edit `pkg/version/version.go` and update the version number around line 22.
 
 ### Update Changelog
 Running the following command will generate new entries in `CHANGELOG.md` since _since-tag_. They will be placed in the changelog file under a heading related to _future-release_. In the example below, changelogs will be generated for any changes since the `v1.4.0` tag, and placed under a section titled *v1.5.0*.
@@ -17,7 +17,7 @@ Running the following command will generate new entries in `CHANGELOG.md` since 
 Before running this command, you'll need to have a GitHub [personal access token](https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token) set in the `GITHUB_TOKEN` OS environment variable.
 
 ```
-docker run -it --rm -v "$(pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator -u accurics -p terrascan -t $GITHUB_TOKEN -b CHANGELOG.md --since-tag v1.4.0 --future-release v1.5.0
+docker run -it --rm -v "$(pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator -u tenable -p terrascan -t $GITHUB_TOKEN -b CHANGELOG.md --since-tag v1.4.0 --future-release v1.5.0
 ```
 
 Next, Review `CHANGELOG.md` to ensure there are notes for the new release
@@ -43,7 +43,7 @@ Run the commands below to update Brew to the latest Terrascan version. If you ar
 
 ```
 $ export TERRASCAN_VERSION=<release_version_number>
-$ brew bump-formula-pr --no-browse --url https://github.com/accurics/terrascan/archive/${TERRASCAN_VERSION}.tar.gz --sha256 $(curl -sL https://github.com/accurics/terrascan/archive/${TERRASCAN_VERSION}.tar.gz | sha256sum | awk '{print $1}')
+$ brew bump-formula-pr --no-browse --url https://github.com/tenable/terrascan/archive/${TERRASCAN_VERSION}.tar.gz --sha256 $(curl -sL https://github.com/tenable/terrascan/archive/${TERRASCAN_VERSION}.tar.gz | sha256sum | awk '{print $1}') terrascan
 ```
 
 ### Update helm chart and kustomize directory

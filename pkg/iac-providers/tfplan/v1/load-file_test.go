@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,15 +20,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"syscall"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 func TestLoadIacFile(t *testing.T) {
@@ -59,7 +58,7 @@ func TestLoadIacFile(t *testing.T) {
 			name:     "invalid tfplan json",
 			filePath: filepath.Join("testdata", "invalid-tfplan.json"),
 			tfplan:   TFPlan{},
-			wantErr:  fmt.Errorf("invalid terraform json file; error: 'terraform format version shoule be one of '0.1, 0.2''"),
+			wantErr:  fmt.Errorf("invalid terraform json file; error: 'terraform format version should be one of '0.1, 0.2''"),
 		},
 		{
 			name:     "valid tfplan json",
@@ -99,7 +98,7 @@ func TestLoadIacFile(t *testing.T) {
 
 		gotBytes, _ := json.MarshalIndent(got, "", "  ")
 		gotBytes = append(gotBytes, []byte{'\n'}...)
-		wantBytes, _ := ioutil.ReadFile(tfplanOutput)
+		wantBytes, _ := os.ReadFile(tfplanOutput)
 		if utils.IsWindowsPlatform() {
 			wantBytes = utils.ReplaceWinNewLineBytes(wantBytes)
 		}

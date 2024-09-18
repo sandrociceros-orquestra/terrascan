@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package commons
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -72,9 +72,9 @@ func (r *RefResolver) ResolveLocalRef(localRef, callerRef string) interface{} {
 	}
 
 	// read source file
-	fileBytes, err := ioutil.ReadFile(localAttr.DeclRange.Filename)
+	fileBytes, err := os.ReadFile(localAttr.DeclRange.Filename)
 	if err != nil {
-		zap.S().Errorf("failed to read terrafrom IaC file '%s'. error: '%v'", localAttr.DeclRange.Filename, err)
+		zap.S().Errorf("failed to read terraform IaC file '%s'. error: '%v'", localAttr.DeclRange.Filename, err)
 		return localRef
 	}
 

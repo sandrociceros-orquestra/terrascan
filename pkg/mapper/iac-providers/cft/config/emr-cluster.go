@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/emr"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/emr"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // KerberosAttributesBlock holds config for KerberosAttributes
 type KerberosAttributesBlock struct {
@@ -35,6 +38,7 @@ type EmrClusterConfig struct {
 }
 
 // GetEmrClusterConfig returns config for EmrCluster
+// aws_emr_cluster
 func GetEmrClusterConfig(c *emr.Cluster) []AWSResourceConfig {
 	var kerberosAttributes []KerberosAttributesBlock
 	if c.KerberosAttributes != nil {
@@ -49,9 +53,9 @@ func GetEmrClusterConfig(c *emr.Cluster) []AWSResourceConfig {
 			Name: c.Name,
 		},
 		Name:                  c.Name,
-		ReleaseLabel:          c.ReleaseLabel,
+		ReleaseLabel:          functions.GetVal(c.ReleaseLabel),
 		ServiceRole:           c.ServiceRole,
-		TerminationProtection: c.Instances.TerminationProtected,
+		TerminationProtection: functions.GetVal(c.Instances.TerminationProtected),
 		KerberosAttributes:    kerberosAttributes,
 	}
 

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ var ResourceTypes = map[string]string{
 	"AWS::ApiGatewayV2::Stage":                         AwsAPIGatewayV2Stage,
 	"AWS::ApiGatewayV2::Api":                           AwsAPIGatewayV2Api,
 	"AWS::ApiGateway::Stage":                           AwsAPIGatewayStage,
-	"AWS::ApiGateway::Stage.MethodSettings":            AwsAPIGatewayStageMethodSettings,
+	"AWS::ApiGateway::Stage.MethodSetting":             AwsAPIGatewayStageMethodSettings,
 	"AWS::ApiGateway::RestApi":                         AwsAPIGatewayRestAPI,
 	"AWS::Athena::WorkGroup":                           AwsAthenaWorkGroup,
 	"AWS::QLDB::Ledger":                                AwsQldbLedger,
@@ -81,6 +81,7 @@ var ResourceTypes = map[string]string{
 	"AWS::ECS::TaskDefinition":                         AwsEcsTaskDefinition,
 	"AWS::S3::Bucket":                                  AwsS3Bucket,
 	"AWS::S3::Bucket.PublicAccessBlock":                AwsS3BucketPublicAccessBlock,
+	"AWS::S3::Bucket.ServerSideEncription":             AwsS3BucketServersideEncription,
 	"AWS::S3::BucketPolicy":                            AwsS3BucketPolicy,
 	"AWS::SQS::Queue":                                  AwsSqsQueue,
 	"AWS::SQS::QueuePolicy":                            AwsSqsQueuePolicy,
@@ -91,6 +92,7 @@ var ResourceTypes = map[string]string{
 	"AWS::EC2::Instance.NetworkInterface":              AwsEc2NetworkInterface,
 	"AWS::Cognito::UserPool":                           AwsCognitoUserPool,
 	"AWS::Lambda::Function":                            AwsLambdaFunction,
+	"AWS::Serverless::Function":                        AwsLambdaFunction,
 	"AWS::CertificateManager::Certificate":             AwsAcmCertificate,
 	"AWS::SageMaker::NotebookInstance":                 AwsSagemakerNotebookInstance,
 	"AWS::SageMaker::Model":                            AwsSagemakerModel,
@@ -105,4 +107,11 @@ var ResourceTypes = map[string]string{
 	"AWS::AppMesh::Mesh":                               AwsAppMeshMesh,
 	"AWS::ApplicationAutoScaling::ScalingPolicy":       AwsAppAutoscalingPolicy,
 	"AWS::RAM::ResourceShare":                          AwsRAMResourceShare,
+	"AWS::EC2::SubnetRouteTableAssociation":            AwsRouteTableAssociation,
+	"AWS::EC2::RouteTable":                             AwsRouteTable,
+	"AWS::EC2::NatGateway":                             AwsNatGateway,
+	"AWS::EC2::Subnet":                                 AwsSubnet,
+	"AWS::EC2::Route":                                  AwsRoute,
+	"AWS::SSM::Parameter":                              AwsSSMParameter,
+	"AWS::ElasticLoadBalancingV2::LoadBalancer":        AwsLb,
 }

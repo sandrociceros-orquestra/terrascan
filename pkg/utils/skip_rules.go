@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +31,7 @@ const (
 	TerrascanSkip = "runterrascan.io/skip"
 	// TerrascanSkipRule key used to detect the rule to be skipped
 	TerrascanSkipRule = "rule"
-	// TerrascanSkipComment key used to detect comment skiupping a give rule
+	// TerrascanSkipComment key used to detect comment skipping a give rule
 	TerrascanSkipComment = "comment"
 	// SkipRulesPrefix used to identify and trim the skipping rule patterns
 	SkipRulesPrefix = "#ts:skip="
@@ -94,23 +94,29 @@ func getSkipRuleObject(s string) *output.SkipRule {
 // can be set in annotations for kubernetes manifests and Resource Metadata in AWS cft:
 // k8s:
 // metadata:
-//   annotations:
-//     runterrascan.io/skip: |
-//       [{"rule": "accurics.kubernetes.IAM.109", "comment": "reason to skip the rule"}]
+//
+//	annotations:
+//	  runterrascan.io/skip: |
+//	    [{"rule": "accurics.kubernetes.IAM.109", "comment": "reason to skip the rule"}]
+//
 // cft:
 // Resource:
-//   myResource:
-//     Metadata:
-//       runterrascan.io/skip: |
-//         [{"rule": "AC_AWS_047", "comment": "reason to skip the rule"}]
+//
+//	myResource:
+//	  Metadata:
+//	    runterrascan.io/skip: |
+//	      [{"rule": "AC_AWS_047", "comment": "reason to skip the rule"}]
+//
 // cft json:
-// "Resource":{
-//   "myResource":{
-//     "Metadata":{
-//        "runterrascan.io/skip": "[{\"rule\":\"AWS.CloudFormation.Medium.0603\"}]"
-//     }
-//   }
-// }
+//
+//	"Resource":{
+//	  "myResource":{
+//	    "Metadata":{
+//	       "runterrascan.io/skip": "[{\"rule\":\"AWS.CloudFormation.Medium.0603\"}]"
+//	    }
+//	  }
+//	}
+//
 // each rule and its optional comment must be a string containing an json array like
 // [{rule: ruleID, comment: reason for skipping}]
 func ReadSkipRulesFromMap(skipRulesMap map[string]interface{}, resourceID string) []output.SkipRule {

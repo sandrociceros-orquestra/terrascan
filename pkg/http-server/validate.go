@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ func (g *APIServer) validateFiles(privateKeyFile, certFile string) error {
 	certlength := len(certFile)
 
 	if keylength > 0 && certlength == 0 {
-		return fmt.Errorf("private key file provided but certficate file missing")
+		return fmt.Errorf("private key file provided but certificate file missing")
 	} else if keylength == 0 && certlength > 0 {
 		return fmt.Errorf("certificate file provided but private key file missing")
 	}

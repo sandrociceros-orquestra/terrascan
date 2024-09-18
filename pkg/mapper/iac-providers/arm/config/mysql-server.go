@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,9 +19,10 @@ package config
 import (
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/mapper/convert"
-	fn "github.com/accurics/terrascan/pkg/mapper/iac-providers/arm/functions"
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/arm/types"
+	"github.com/tenable/terrascan/pkg/mapper/convert"
+	fn "github.com/tenable/terrascan/pkg/mapper/iac-providers/arm/functions"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/arm/types"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
@@ -49,7 +50,7 @@ func MySQLServerConfig(r types.Resource, vars, params map[string]interface{}) ma
 		tfLocation:                   fn.LookUpString(nil, params, r.Location),
 		tfName:                       fn.LookUpString(nil, params, r.Name),
 		tfSkuName:                    fn.LookUpString(vars, params, r.SKU.Name),
-		tfTags:                       r.Tags,
+		tfTags:                       functions.PatchAWSTags(r.Tags),
 		tfVersion:                    fn.LookUpString(vars, params, convert.ToString(r.Properties, armVersion)),
 		tfAdministratorLogin:         fn.LookUpString(vars, params, convert.ToString(r.Properties, armAdministratorLogin)),
 		tfAdministratorLoginPassword: fn.LookUpString(vars, params, convert.ToString(r.Properties, armAdministratorLoginPassword)),

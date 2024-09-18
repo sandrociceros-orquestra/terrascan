@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/guardduty"
+	"github.com/awslabs/goformation/v7/cloudformation/guardduty"
 )
 
 // GuardDutyDetectorConfig holds config for aws_guardduty_detector
@@ -27,6 +27,7 @@ type GuardDutyDetectorConfig struct {
 }
 
 // GetGuardDutyDetectorConfig returns config for aws_guardduty_detector
+// aws_guardduty_detector no policy
 func GetGuardDutyDetectorConfig(d *guardduty.Detector) []AWSResourceConfig {
 	cf := GuardDutyDetectorConfig{
 		Config: Config{},

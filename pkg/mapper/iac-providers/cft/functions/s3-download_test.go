@@ -1,17 +1,17 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+	    Copyright (C) 2022 Tenable, Inc.
 
-	Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+		Licensed under the Apache License, Version 2.0 (the "License");
+	    you may not use this file except in compliance with the License.
+	    You may obtain a copy of the License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+			http://www.apache.org/licenses/LICENSE-2.0
 
-	Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+		Unless required by applicable law or agreed to in writing, software
+	    distributed under the License is distributed on an "AS IS" BASIS,
+	    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	    See the License for the specific language governing permissions and
+	    limitations under the License.
 */
 package functions
 
@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
+	"github.com/aws/smithy-go/ptr"
 )
 
 func TestDownloadBucketObj(t *testing.T) {
@@ -87,7 +88,7 @@ func TestDownloadPrivateBucketObj(t *testing.T) {
 			client: func(t *testing.T) HeadBucketAPIClient {
 				return mockHeadObjectAPI(func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
 					t.Helper()
-					return &s3.HeadObjectOutput{ContentLength: 64}, nil
+					return &s3.HeadObjectOutput{ContentLength: ptr.Int64(64)}, nil
 				})
 			},
 			manager: func(t *testing.T) S3DownloadManager {

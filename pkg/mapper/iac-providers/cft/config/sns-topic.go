@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/sns"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/sns"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // SnsTopicConfig holds config for SnsTopic
 type SnsTopicConfig struct {
@@ -26,13 +29,14 @@ type SnsTopicConfig struct {
 }
 
 // GetSnsTopicConfig returns config for SnsTopic
+// aws_sns_topic
 func GetSnsTopicConfig(t *sns.Topic) []AWSResourceConfig {
 	cf := SnsTopicConfig{
 		Config: Config{
-			Name: t.TopicName,
+			Name: functions.GetVal(t.TopicName),
 		},
-		Name:        t.TopicName,
-		KmsMasterID: t.KmsMasterKeyId,
+		Name:        functions.GetVal(t.TopicName),
+		KmsMasterID: functions.GetVal(t.KmsMasterKeyId),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/ram"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/ram"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // RAMResourceShareConfig holds config for RAMResourceShare
 type RAMResourceShareConfig struct {
@@ -26,14 +29,15 @@ type RAMResourceShareConfig struct {
 }
 
 // GetRAMResourceShareConfig returns config for RAMResourceShare
+// aws_ram_resource_share
 func GetRAMResourceShareConfig(r *ram.ResourceShare) []AWSResourceConfig {
 	cf := RAMResourceShareConfig{
 		Config: Config{
 			Name: r.Name,
-			Tags: r.Tags,
+			Tags: functions.PatchAWSTags(r.Tags),
 		},
 		Name:                    r.Name,
-		AllowExternalPrincipals: r.AllowExternalPrincipals,
+		AllowExternalPrincipals: functions.GetVal(r.AllowExternalPrincipals),
 	}
 
 	return []AWSResourceConfig{{

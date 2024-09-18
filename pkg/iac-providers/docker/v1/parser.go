@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package dockerv1
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/moby/buildkit/frontend/dockerfile/instructions"
@@ -50,7 +50,7 @@ func (dc *DockerV1) Parse(filepath string) ([]DockerConfig, string, error) {
 	config := []DockerConfig{}
 	comments := ""
 
-	data, err := ioutil.ReadFile(filepath)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		zap.S().Error("error loading docker file", filepath, zap.Error(err))
 		return config, "", err
@@ -71,7 +71,7 @@ func (dc *DockerV1) Parse(filepath string) ([]DockerConfig, string, error) {
 
 		// loop over all the comments before the instruction is found to create one single string of comments
 		// appending # prefix and new line since it is removed by the parser while creating the AST
-		// Purpose of adding them back is to use the comman function to find skiprules and min max severity.
+		// Purpose of adding them back is to use the command function to find skiprules and min max severity.
 		for _, comment := range child.PrevComment {
 			comments = comments + commentPrefix + comment + newLine
 		}

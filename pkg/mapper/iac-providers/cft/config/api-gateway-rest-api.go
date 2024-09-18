@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/apigateway"
+	"github.com/awslabs/goformation/v7/cloudformation/apigateway"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // APIGatewayRestAPIConfig holds config for aws_api_gateway_rest_api
@@ -29,13 +30,14 @@ type APIGatewayRestAPIConfig struct {
 }
 
 // GetAPIGatewayRestAPIConfig returns config for aws_api_gateway_rest_api
+// aws_api_gateway_rest_api
 func GetAPIGatewayRestAPIConfig(a *apigateway.RestApi) []AWSResourceConfig {
 	cf := APIGatewayRestAPIConfig{
 		Config: Config{
-			Name: a.Name,
-			Tags: a.Tags,
+			Name: functions.GetVal(a.Name),
+			Tags: functions.PatchAWSTags(a.Tags),
 		},
-		MinimumCompressionSize: a.MinimumCompressionSize,
+		MinimumCompressionSize: functions.GetVal(a.MinimumCompressionSize),
 		Policy:                 a.Policy,
 	}
 	// Endpoint Configuration is a []map[string][]string in terraform for some reason

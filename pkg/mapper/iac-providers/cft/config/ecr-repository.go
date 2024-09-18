@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/ecr"
+	"github.com/awslabs/goformation/v7/cloudformation/ecr"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // EcrRepositoryConfig holds config for aws_ecr_repository
@@ -33,17 +34,18 @@ type ImageScanningConfigurationBlock struct {
 }
 
 // GetEcrRepositoryConfig returns config for aws_ecr_repository
+// aws_ecr_repository
 func GetEcrRepositoryConfig(r *ecr.Repository) []AWSResourceConfig {
 	var imageScanningConfiguration []ImageScanningConfigurationBlock
 	if r.ImageScanningConfiguration != nil {
 		imageScanningConfiguration = make([]ImageScanningConfigurationBlock, 1)
-		imageScanningConfiguration[0].ScanOnPush = r.ImageScanningConfiguration.ScanOnPush
+		imageScanningConfiguration[0].ScanOnPush = functions.GetVal(r.ImageScanningConfiguration.ScanOnPush)
 	}
 
 	cf := EcrRepositoryConfig{
 		Config: Config{
-			Tags: r.Tags,
-			Name: r.RepositoryName,
+			Tags: functions.PatchAWSTags(r.Tags),
+			Name: functions.GetVal(r.RepositoryName),
 		},
 		ImageScanningConfiguration: imageScanningConfiguration,
 	}

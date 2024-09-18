@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/config"
-	"github.com/accurics/terrascan/pkg/k8s/dblogs"
 	"github.com/gorilla/mux"
+	"github.com/tenable/terrascan/pkg/config"
+	"github.com/tenable/terrascan/pkg/k8s/dblogs"
 	v1 "k8s.io/api/admission/v1"
 )
 
@@ -211,7 +211,7 @@ func TestUWebhooks(t *testing.T) {
 			}
 			defer logger.ClearDbFilePath()
 
-			byteValue, _ := ioutil.ReadAll(jsonFile)
+			byteValue, _ := io.ReadAll(jsonFile)
 
 			var admissionRequest v1.AdmissionReview
 			json.Unmarshal(byteValue, &admissionRequest)

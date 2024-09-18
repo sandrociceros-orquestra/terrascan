@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
 	"github.com/hashicorp/go-multierror"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
 )
 
 const kustomizeErrPrefix = "error from kustomization."
@@ -212,7 +212,7 @@ func TestLoadKustomize(t *testing.T) {
 			name:            "erroneous-pod",
 			basepath:        filepath.Join(testDataDir, "erroneous-pod"),
 			filename:        kustomizeYaml,
-			wantErr:         fmt.Errorf(kustomizeErrPrefix),
+			wantErr:         fmt.Errorf(kustomizeErrPrefix), //lint:ignore SA1006 placeholder %s are specified in string constants
 			checkPrefix:     true,
 			kustomizeBinary: false,
 			exe:             "",
@@ -221,7 +221,7 @@ func TestLoadKustomize(t *testing.T) {
 			name:            "erroneous-deployment",
 			basepath:        filepath.Join(testDataDir, "erroneous-deployment/"),
 			filename:        kustomizeYaml,
-			wantErr:         fmt.Errorf(kustomizeErrPrefix),
+			wantErr:         fmt.Errorf(kustomizeErrPrefix), //lint:ignore SA1006 placeholder %s are specified in string constants
 			checkPrefix:     true,
 			kustomizeBinary: false,
 			exe:             "",

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,16 +19,16 @@ package armv1
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/mapper"
-	"github.com/accurics/terrascan/pkg/mapper/convert"
-	"github.com/accurics/terrascan/pkg/mapper/core"
-	fn "github.com/accurics/terrascan/pkg/mapper/iac-providers/arm/functions"
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/arm/types"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/mapper"
+	"github.com/tenable/terrascan/pkg/mapper/convert"
+	"github.com/tenable/terrascan/pkg/mapper/core"
+	fn "github.com/tenable/terrascan/pkg/mapper/iac-providers/arm/functions"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/arm/types"
 	"go.uber.org/zap"
 )
 
@@ -40,7 +40,7 @@ func (a *ARMV1) LoadIacFile(absFilePath string, options map[string]interface{}) 
 		return allResourcesConfig, fmt.Errorf("unsupported file %s", absFilePath)
 	}
 
-	fileData, err := ioutil.ReadFile(absFilePath)
+	fileData, err := os.ReadFile(absFilePath)
 	if err != nil {
 		zap.S().Debug("unable to read file", zap.Error(err), zap.String("file", absFilePath))
 		return allResourcesConfig, fmt.Errorf("unable to read file %s", absFilePath)
@@ -185,7 +185,7 @@ func (a *ARMV1) getLinkedTemplate(config output.ResourceConfig, path string, map
 			// if linked template is relative path
 			if relativePath := convert.ToString(resourceConfig, types.LinkedTemplateRelativePath); relativePath != "" {
 				templatePath := filepath.Join(filepath.Dir(path), relativePath)
-				data, err := ioutil.ReadFile(templatePath)
+				data, err := os.ReadFile(templatePath)
 				if err != nil {
 					zap.S().Debug("error loading linked template", zap.String("path", relativePath), zap.Error(err))
 				}
@@ -220,7 +220,7 @@ func (a *ARMV1) getLinkedTemplate(config output.ResourceConfig, path string, map
 				return nil, path
 			}
 
-			// propogate parameters
+			// propagate parameters
 			for key, param := range linkedTemplate.Parameters {
 				if _, ok := a.templateParameters[key]; !ok {
 					a.templateParameters[key] = param.DefaultValue

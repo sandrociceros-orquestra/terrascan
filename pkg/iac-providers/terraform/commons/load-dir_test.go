@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,19 +19,18 @@ package commons
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/downloader"
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/iac-providers/terraform/commons/test"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/hcl/v2"
 	hclConfigs "github.com/hashicorp/terraform/configs"
 	"github.com/spf13/afero"
+	"github.com/tenable/terrascan/pkg/downloader"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/iac-providers/terraform/commons/test"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -58,22 +57,24 @@ func TestProcessLocalSource(t *testing.T) {
 		req *hclConfigs.ModuleRequest
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		options map[string]interface{}
+		name             string
+		args             args
+		want             string
+		options          map[string]interface{}
+		terraformVersion string
 	}{
 		{
 			name: "no remote module",
 			args: args{
 				req: testModuleReqA,
 			},
-			want: filepath.Join(testDirPath, "someModule"),
+			terraformVersion: "0.15.0",
+			want:             filepath.Join(testDirPath, "someModule"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			dl := NewTerraformDirectoryLoader("", tt.options)
+			dl := NewTerraformDirectoryLoader("", tt.terraformVersion, tt.options)
 			if got := dl.processLocalSource(tt.args.req); got != tt.want {
 				t.Errorf("processLocalSource() got = %v, want = %v", got, tt.want)
 			}
@@ -91,11 +92,12 @@ func TestProcessTerraformRegistrySource(t *testing.T) {
 		m              downloader.ModuleDownloader
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-		options map[string]interface{}
+		name             string
+		args             args
+		want             string
+		wantErr          bool
+		options          map[string]interface{}
+		terraformVersion string
 	}{
 		{
 			name: "invalid registry host",
@@ -107,7 +109,8 @@ func TestProcessTerraformRegistrySource(t *testing.T) {
 				tempDir:        utils.GenerateTempDir(),
 				m:              downloader.NewRemoteDownloader(),
 			},
-			wantErr: true,
+			wantErr:          true,
+			terraformVersion: "0.15.0",
 		},
 		{
 			name: "valid registry source",
@@ -125,7 +128,7 @@ func TestProcessTerraformRegistrySource(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			defer os.RemoveAll(tt.args.tempDir)
-			dl := NewTerraformDirectoryLoader("", tt.options)
+			dl := NewTerraformDirectoryLoader("", tt.terraformVersion, tt.options)
 			got, err := dl.processTerraformRegistrySource(tt.args.req, tt.args.tempDir)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("processTerraformRegistrySource() got error = %v, wantErr = %v", err, tt.wantErr)
@@ -194,7 +197,7 @@ func TestGetRemoteLocation(t *testing.T) {
 			wantTmpDir:    "/var/folders/y5/y1qlrpl90rs_3n06z_qgjwv00000gn/T/791rns/",
 		},
 		{
-			name: "source path is local and lenght of path is greater than tempDirs",
+			name: "source path is local and length of path is greater than tempDirs",
 			args: args{
 				cache:        map[string]string{"git::https:/github.com/terraform-aws-modules/terraform-aws-rds?ref=v2.20.0": "/var/folders/y5/y1qlrpl90rs_3n06z_qgjwv00000gn/T/791rns/", "git::https:/github.com/terraform-aws-modules/terraform-aws-rds?ref=v2.10.0": "/var/folders/y5/y1qlrpl90rs_3n06z_qgjwv00000gn/T/791fcs/"},
 				resourcePath: "/user/folders/y5/y1qlrpl90rs_3n06z_qgjwv00000gn/T/791rns/modules/db_parameter_group/main.tf",
@@ -258,7 +261,7 @@ func TestGetConfigSource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetConfigSource(tt.args.remoteURLMapping, tt.args.resourceConfig, tt.args.absRootDir)
+			got, _, err := GetConfigSource(tt.args.remoteURLMapping, tt.args.resourceConfig, tt.args.absRootDir)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetConfigSource() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -338,11 +341,12 @@ func TestGetRemoteModuleIfPresentInTerraformSrc(t *testing.T) {
 func TestTerraformDirectoryLoaderLoadIacDir(t *testing.T) {
 	var nilMultiErr *multierror.Error = nil
 	tests := []struct {
-		name        string
-		tfConfigDir string
-		tfJSONFile  string
-		options     map[string]interface{}
-		wantErr     error
+		name             string
+		tfConfigDir      string
+		tfJSONFile       string
+		options          map[string]interface{}
+		wantErr          error
+		terraformVersion string
 	}{
 		{
 			name:        "directory with resources having container defined",
@@ -352,6 +356,7 @@ func TestTerraformDirectoryLoaderLoadIacDir(t *testing.T) {
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "terraform-container-extraction")),
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "terraform-container-extraction/terraform-aws-provider/task-definitions")),
 			),
+			terraformVersion: "0.15.0",
 		},
 	}
 	for _, tt := range tests {
@@ -361,6 +366,7 @@ func TestTerraformDirectoryLoaderLoadIacDir(t *testing.T) {
 				remoteDownloader:         downloader.NewRemoteDownloader(),
 				parser:                   hclConfigs.NewParser(afero.NewOsFs()),
 				terraformInitModuleCache: make(map[string]TerraformModuleManifest),
+				terraformVersion:         tt.terraformVersion,
 			}
 			got, gotErr := tr.LoadIacDir()
 			me, ok := gotErr.(*multierror.Error)
@@ -378,7 +384,7 @@ func TestTerraformDirectoryLoaderLoadIacDir(t *testing.T) {
 			var want output.AllResourceConfigs
 
 			// Read the expected value and unmarshal into want
-			contents, _ := ioutil.ReadFile(tt.tfJSONFile)
+			contents, _ := os.ReadFile(tt.tfJSONFile)
 			if utils.IsWindowsPlatform() {
 				contents = utils.ReplaceWinNewLineBytes(contents)
 			}

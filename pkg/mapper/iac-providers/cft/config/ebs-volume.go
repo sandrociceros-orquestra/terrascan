@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/ec2"
+	"github.com/awslabs/goformation/v7/cloudformation/ec2"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // EbsVolumeConfig holds config for aws_ebs_volume
@@ -28,13 +29,14 @@ type EbsVolumeConfig struct {
 }
 
 // GetEbsVolumeConfig returns config for aws_ebs_volume
+// aws_ebs_volume
 func GetEbsVolumeConfig(v *ec2.Volume) []AWSResourceConfig {
 	cf := EbsVolumeConfig{
 		Config: Config{
-			Tags: v.Tags,
+			Tags: functions.PatchAWSTags(v.Tags),
 		},
-		Encrypted: v.Encrypted,
-		KmsKeyID:  v.KmsKeyId,
+		Encrypted: functions.GetVal(v.Encrypted),
+		KmsKeyID:  functions.GetVal(v.KmsKeyId),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

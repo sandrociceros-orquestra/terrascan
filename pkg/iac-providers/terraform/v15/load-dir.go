@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 package tfv15
 
 import (
-	commons "github.com/accurics/terrascan/pkg/iac-providers/terraform/commons"
+	commons "github.com/tenable/terrascan/pkg/iac-providers/terraform/commons"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
 )
 
 // LoadIacDir starts traversing from the given rootDir and traverses through
@@ -27,5 +27,10 @@ import (
 // resources present in rootDir and descendant modules
 func (*TfV15) LoadIacDir(absRootDir string, options map[string]interface{}) (allResourcesConfig output.AllResourceConfigs, err error) {
 
-	return commons.NewTerraformDirectoryLoader(absRootDir, options).LoadIacDir()
+	return commons.NewTerraformDirectoryLoader(absRootDir, "0.15.0", options).LoadIacDir()
+}
+
+// Name returns name of the provider
+func (*TfV15) Name() string {
+	return "terraform"
 }

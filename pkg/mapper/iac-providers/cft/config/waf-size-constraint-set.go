@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/waf"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/waf"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // FieldToMatchBlock holds field_to_match attribute
 type FieldToMatchBlock struct {
@@ -40,6 +43,7 @@ type WafSizeConstraintSetConfig struct {
 }
 
 // GetWafSizeConstraintSetConfig returns config for aws_waf_size_constraint_set
+// aws_waf_size_constraint_set
 func GetWafSizeConstraintSetConfig(w *waf.SizeConstraintSet) []AWSResourceConfig {
 	sizeConstraintSet := setSizeConstraintSet(w)
 
@@ -73,8 +77,8 @@ func setFieldToMatch(w *waf.SizeConstraintSet, index int) []FieldToMatchBlock {
 	fieldToMatchBlock := make([]FieldToMatchBlock, 1)
 	fieldToMatchBlock[0].Type = w.SizeConstraints[index].FieldToMatch.Type
 
-	if w.SizeConstraints[index].FieldToMatch.Data != "" {
-		fieldToMatchBlock[0].Data = w.SizeConstraints[index].FieldToMatch.Data
+	if w.SizeConstraints[index].FieldToMatch.Data != nil {
+		fieldToMatchBlock[0].Data = functions.GetVal(w.SizeConstraints[index].FieldToMatch.Data)
 	}
 
 	return fieldToMatchBlock

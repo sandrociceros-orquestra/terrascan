@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ func TestValidateFiles(t *testing.T) {
 			name:           "cert filename absent",
 			privateKeyFile: "keyfile",
 			certFile:       "",
-			wantErr:        fmt.Errorf("private key file provided but certficate file missing"),
+			wantErr:        fmt.Errorf("private key file provided but certificate file missing"),
 		},
 	}
 

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/certificatemanager"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/certificatemanager"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // CertificateManagerCertificateConfig holds config for CertificateManagerCertificate
 type CertificateManagerCertificateConfig struct {
@@ -26,13 +29,14 @@ type CertificateManagerCertificateConfig struct {
 }
 
 // GetCertificateManagerCertificateConfig returns config for CertificateManagerCertificate
+// aws_acm_certificate
 func GetCertificateManagerCertificateConfig(c *certificatemanager.Certificate) []AWSResourceConfig {
 	cf := CertificateManagerCertificateConfig{
 		Config: Config{
-			Tags: c.Tags,
+			Tags: functions.PatchAWSTags(c.Tags),
 		},
 		DomainName:       c.DomainName,
-		ValidationMethod: c.ValidationMethod,
+		ValidationMethod: functions.GetVal(c.ValidationMethod),
 	}
 
 	return []AWSResourceConfig{{

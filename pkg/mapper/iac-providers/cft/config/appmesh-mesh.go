@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/appmesh"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/appmesh"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // AppMeshEgressFilterBlock holds config for AppMeshEgressFilter
 type AppMeshEgressFilterBlock struct {
@@ -36,6 +39,7 @@ type AppMeshMeshConfig struct {
 }
 
 // GetAppMeshMeshConfig returns config for AppMeshMesh
+// aws_appmesh_mesh
 func GetAppMeshMeshConfig(m *appmesh.Mesh) []AWSResourceConfig {
 	var spec []AppMeshSpecBlock
 	if m.Spec != nil {
@@ -50,10 +54,10 @@ func GetAppMeshMeshConfig(m *appmesh.Mesh) []AWSResourceConfig {
 
 	cf := AppMeshMeshConfig{
 		Config: Config{
-			Name: m.MeshName,
-			Tags: m.Tags,
+			Name: functions.GetVal(m.MeshName),
+			Tags: functions.PatchAWSTags(m.Tags),
 		},
-		Name: m.MeshName,
+		Name: functions.GetVal(m.MeshName),
 		Spec: spec,
 	}
 

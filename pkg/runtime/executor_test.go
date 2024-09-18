@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,27 +23,27 @@ import (
 	"reflect"
 	"testing"
 
-	tfv15 "github.com/accurics/terrascan/pkg/iac-providers/terraform/v15"
-	"github.com/accurics/terrascan/pkg/results"
-	"github.com/accurics/terrascan/pkg/vulnerability"
 	"github.com/hashicorp/go-multierror"
+	tfv15 "github.com/tenable/terrascan/pkg/iac-providers/terraform/v15"
+	"github.com/tenable/terrascan/pkg/results"
+	"github.com/tenable/terrascan/pkg/vulnerability"
 
-	iacProvider "github.com/accurics/terrascan/pkg/iac-providers"
-	armv1 "github.com/accurics/terrascan/pkg/iac-providers/arm/v1"
-	cftv1 "github.com/accurics/terrascan/pkg/iac-providers/cft/v1"
-	dockerv1 "github.com/accurics/terrascan/pkg/iac-providers/docker/v1"
-	helmv3 "github.com/accurics/terrascan/pkg/iac-providers/helm/v3"
-	k8sv1 "github.com/accurics/terrascan/pkg/iac-providers/kubernetes/v1"
-	kustomizev4 "github.com/accurics/terrascan/pkg/iac-providers/kustomize/v4"
-	tfv12 "github.com/accurics/terrascan/pkg/iac-providers/terraform/v12"
-	tfv14 "github.com/accurics/terrascan/pkg/iac-providers/terraform/v14"
-	"github.com/accurics/terrascan/pkg/notifications/webhook"
+	iacProvider "github.com/tenable/terrascan/pkg/iac-providers"
+	armv1 "github.com/tenable/terrascan/pkg/iac-providers/arm/v1"
+	cftv1 "github.com/tenable/terrascan/pkg/iac-providers/cft/v1"
+	dockerv1 "github.com/tenable/terrascan/pkg/iac-providers/docker/v1"
+	helmv3 "github.com/tenable/terrascan/pkg/iac-providers/helm/v3"
+	k8sv1 "github.com/tenable/terrascan/pkg/iac-providers/kubernetes/v1"
+	kustomizev4 "github.com/tenable/terrascan/pkg/iac-providers/kustomize/v4"
+	tfv12 "github.com/tenable/terrascan/pkg/iac-providers/terraform/v12"
+	tfv14 "github.com/tenable/terrascan/pkg/iac-providers/terraform/v14"
+	"github.com/tenable/terrascan/pkg/notifications/webhook"
 
-	"github.com/accurics/terrascan/pkg/config"
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/notifications"
-	"github.com/accurics/terrascan/pkg/policy"
-	"github.com/accurics/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/config"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/notifications"
+	"github.com/tenable/terrascan/pkg/policy"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 var (
@@ -70,11 +70,15 @@ func (m MockIacProvider) LoadIacFile(file string, options map[string]interface{}
 	return m.output, m.err
 }
 
+func (m MockIacProvider) Name() string {
+	return "mock-iac"
+}
+
 // mock policy engine
 type MockPolicyEngine struct {
 	err error
 }
-type MockVulnerabiltyEngine struct {
+type MockVulnerabilityEngine struct {
 	out vulnerability.EngineOutput
 }
 
@@ -96,11 +100,11 @@ func (m MockPolicyEngine) Evaluate(input policy.EngineInput, filter policy.PreSc
 	return out, m.err
 }
 
-func (m MockVulnerabiltyEngine) ReportVulnerability(input vulnerability.EngineInput, options map[string]interface{}) (out vulnerability.EngineOutput) {
+func (m MockVulnerabilityEngine) ReportVulnerability(input vulnerability.EngineInput, options map[string]interface{}) (out vulnerability.EngineOutput) {
 	return m.out
 }
 
-func (m MockVulnerabiltyEngine) FetchVulnerabilities(input output.AllResourceConfigs, options map[string]interface{}) (out output.AllResourceConfigs) {
+func (m MockVulnerabilityEngine) FetchVulnerabilities(input output.AllResourceConfigs, options map[string]interface{}) (out output.AllResourceConfigs) {
 	return out
 }
 
@@ -158,7 +162,7 @@ func TestExecute(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "test SendNofitications no error",
+			name: "test SendNotifications no error",
 			executor: Executor{
 				iacProviders:  []iacProvider.IacProvider{MockIacProvider{err: nil}},
 				notifiers:     []notifications.Notifier{&MockNotifier{err: nil}},
@@ -167,7 +171,7 @@ func TestExecute(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name: "test policy enginer no error",
+			name: "test policy engineer no error",
 			executor: Executor{
 				iacProviders:  []iacProvider.IacProvider{MockIacProvider{err: nil}},
 				notifiers:     []notifications.Notifier{&MockNotifier{err: nil}},
@@ -190,7 +194,7 @@ func TestExecute(t *testing.T) {
 				iacProviders:  []iacProvider.IacProvider{MockIacProvider{err: nil}},
 				notifiers:     []notifications.Notifier{&MockNotifier{err: nil}},
 				policyEngines: []policy.Engine{MockPolicyEngine{err: nil}},
-				vulnerabilityEngine: MockVulnerabiltyEngine{
+				vulnerabilityEngine: MockVulnerabilityEngine{
 					out: vulnerability.EngineOutput{
 						XMLName:        xml.Name{},
 						ViolationStore: results.NewViolationStore(),
@@ -619,7 +623,7 @@ func TestNewExecutor(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			config.LoadGlobalConfig(tt.configfile)
 
-			gotExecutor, gotErr := NewExecutor(tt.flags.iacType, tt.flags.iacVersion, tt.flags.policyTypes, tt.flags.filePath, tt.flags.dirPath, tt.flags.policyPath, tt.flags.scanRules, tt.flags.skipRules, tt.flags.categories, tt.flags.severity, false, false, false, tt.flags.notificationWebhookURL, tt.flags.notificationWebhookToken, tt.flags.repoURL, tt.flags.repoRef)
+			gotExecutor, gotErr := NewExecutor(tt.flags.iacType, tt.flags.iacVersion, tt.flags.policyTypes, tt.flags.filePath, tt.flags.dirPath, tt.flags.policyPath, tt.flags.scanRules, tt.flags.skipRules, tt.flags.categories, tt.flags.severity, false, false, false, tt.flags.notificationWebhookURL, tt.flags.notificationWebhookToken, tt.flags.repoURL, tt.flags.repoRef, []string{})
 
 			if !reflect.DeepEqual(tt.wantErr, gotErr) {
 				t.Errorf("Mismatch in error => got: '%v', want: '%v'", gotErr, tt.wantErr)

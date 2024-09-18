@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
 )
 
 // ---------------------- unit tests -------------------------------- //
@@ -101,7 +101,7 @@ func TestGetSkipRules(t *testing.T) {
 			},
 		},
 		{
-			name: "rule and comment with random space characters",
+			name:  "rule and comment with random space characters",
 			input: "#ts:skip=  AWS.S3Bucket.DS.High.1041  		reason_to skip. the rule\n",
 			expected: []output.SkipRule{
 				{

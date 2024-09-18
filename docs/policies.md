@@ -1,6 +1,6 @@
 # Policies
 
-Terrascan policies are written using the [Rego policy language](https://www.openpolicyagent.org/docs/latest/policy-language/). With each rego policy a JSON "rule" file is included which defines metadata for the policy. Policies included within Terrascan are stored in the [pkg/policies/opa/rego](https://github.com/accurics/terrascan/tree/master/pkg/policies/opa/rego) directory.
+Terrascan policies are written using the [Rego policy language](https://www.openpolicyagent.org/docs/latest/policy-language/). With each rego policy a JSON "rule" file is included which defines metadata for the policy. Policies included within Terrascan are stored in the [pkg/policies/opa/rego](https://github.com/tenable/terrascan/tree/master/pkg/policies/opa/rego) directory.
 
 
 ## Updating Terrascan with the latest policies
@@ -11,7 +11,7 @@ The first time using Terrascan, if the `-p` flag is not specified, Terrascan wil
 
 Terrascan keeps a copy of policies on your local filesystem on the `~/.terrascan/pkg/policies/opa/rego` directory. You can also specify a particular directory with rego policies to scan by using the `-p` flag. To ignore a particular policy from a scan, you can remove the rule `.json` file for the policy you would like to ignore from the scan. Note that this policy would be ignored until the `.json` file is added again to the directory.
 
-In a future enhancement, Terrascan will have a better way to ignore individual policies from scans without having to modify the policies stored in the file system [#367](https://github.com/accurics/terrascan/issues/367).
+In a future enhancement, Terrascan will have a better way to ignore individual policies from scans without having to modify the policies stored in the file system [#367](https://github.com/tenable/terrascan/issues/367).
 
 ## Adding policies
 
@@ -63,7 +63,7 @@ $ terrascan scan -i terraform --config-only -o json
 ```
 
 
-You can use this `.json` output as the input in the [rego playgound](https://play.openpolicyagent.org/). The following policy can be used on the above Terraform to flag if the GitHub repository has been created with `private = false`.
+You can use this `.json` output as the input in the [rego playground](https://play.openpolicyagent.org/). The following policy can be used on the above Terraform to flag if the GitHub repository has been created with `private = false`.
 
 ```
 package accurics

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -165,7 +165,7 @@ func (r *RefResolver) ResolveStrRef(ref, callerRef string) interface{} {
 			valStr := val.(string)
 			/*
 			 Now, if the output of ResolveVarRefFromParentModuleCall is a string
-			 then there are following possibilties, output can be a:
+			 then there are following possibilities, output can be a:
 			 - variable reference (resolve the variable reference)
 			 - cross module variable reference in parent module call
 			 	(resolve module reference)

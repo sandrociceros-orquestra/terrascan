@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/docdb"
+	"github.com/awslabs/goformation/v7/cloudformation/docdb"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // DocDBClusterConfig holds config for aws_docdb_cluster
@@ -29,13 +30,14 @@ type DocDBClusterConfig struct {
 }
 
 // GetDocDBConfig returns config for aws_docdb_cluster
+// aws_docdb_cluster no such resource in policy
 func GetDocDBConfig(d *docdb.DBCluster) []AWSResourceConfig {
 	cf := DocDBClusterConfig{
 		Config: Config{
-			Tags: d.Tags,
+			Tags: functions.PatchAWSTags(d.Tags),
 		},
-		KmsKeyID:                    d.KmsKeyId,
-		StorageEncrypted:            d.StorageEncrypted,
+		KmsKeyID:                    functions.GetVal(d.KmsKeyId),
+		StorageEncrypted:            functions.GetVal(d.StorageEncrypted),
 		EnableCloudwatchLogsExports: d.EnableCloudwatchLogsExports,
 	}
 	return []AWSResourceConfig{{

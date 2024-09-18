@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
 	yamltojson "github.com/ghodss/yaml"
 	"github.com/iancoleman/strcase"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -176,12 +176,12 @@ func readMinMaxSeverityFromAnnotations(annotations map[string]interface{}, resou
 	if minSeverityAnnotation, ok = annotations[terrascanMinSeverity]; !ok {
 		zap.S().Debugf(infileInstructionNotPresentLog, terrascanMinSeverity, resourceID)
 	} else if minSeverity, ok = minSeverityAnnotation.(string); !ok {
-		zap.S().Debugf("%s must be a string cantaining value as (High | Low| Medium)", terrascanMinSeverity)
+		zap.S().Debugf("%s must be a string containing value as (High | Low| Medium)", terrascanMinSeverity)
 	}
 	if maxSeverityAnnotation, ok = annotations[terrascanMaxSeverity]; !ok {
 		zap.S().Debugf(infileInstructionNotPresentLog, terrascanMaxSeverity, resourceID)
 	} else if maxSeverity, ok = maxSeverityAnnotation.(string); !ok {
-		zap.S().Debugf("%s must be a string cantaining value as (High | Low| Medium)", terrascanMaxSeverity)
+		zap.S().Debugf("%s must be a string containing value as (High | Low| Medium)", terrascanMaxSeverity)
 	}
 	return
 }

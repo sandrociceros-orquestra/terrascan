@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,16 +19,15 @@ package tfv12
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	commons_test "github.com/accurics/terrascan/pkg/iac-providers/terraform/commons/test"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	commons_test "github.com/tenable/terrascan/pkg/iac-providers/terraform/commons/test"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 func TestLoadIacDir(t *testing.T) {
@@ -37,14 +36,14 @@ func TestLoadIacDir(t *testing.T) {
 	destroyProvisionersDir := filepath.Join(testDataDir, "destroy-provisioners")
 	destroyProvisionersMainFile := filepath.Join(destroyProvisionersDir, "main.tf")
 
-	testErrorString1 := fmt.Sprintf(`failed to load terraform config dir '%s'. error from terraform:
+	testErrorString1 := fmt.Sprintf(`diagnostic errors while loading terraform config dir '%s'. error from terraform:
 %s:1,21-2,1: Invalid block definition; A block definition must have block content delimited by "{" and "}", starting on the same line as the block header.
 %s:1,1-5: Unsupported block type; Blocks of type "some" are not expected here.
 `, testDataDir, emptyTfFilePath, emptyTfFilePath)
 
 	multipleProvidersDir := filepath.Join(testDataDir, "multiple-required-providers")
 
-	testErrorString2 := fmt.Sprintf(`failed to load terraform config dir '%s'. error from terraform:
+	testErrorString2 := fmt.Sprintf(`diagnostic errors while loading terraform config dir '%s'. error from terraform:
 %s:2,3-21: Duplicate required providers configuration; A module may have only one required providers configuration. The required providers were previously configured at %s:2,3-21.
 `, multipleProvidersDir, filepath.Join(multipleProvidersDir, "b.tf"), filepath.Join(multipleProvidersDir, "a.tf"))
 
@@ -52,7 +51,7 @@ func TestLoadIacDir(t *testing.T) {
 <nil>: Failed to read module directory; Module directory %s does not exist or cannot be read.
 `, filepath.Join(testDataDir, "invalid-moduleconfigs", "cloudfront", "sub-cloudfront"))
 
-	errStringDestroyProvisioners := fmt.Sprintf(`failed to load terraform config dir '%s'. error from terraform:
+	errStringDestroyProvisioners := fmt.Sprintf(`diagnostic errors while loading terraform config dir '%s'. error from terraform:
 %s:8,12-22: Invalid reference from destroy provisioner; Destroy-time provisioners and their connection configurations may only reference attributes of the related resource, via 'self', 'count.index', or 'each.key'.
 
 References to other resources during the destroy phase can cause dependency cycles and interact poorly with create_before_destroy.
@@ -133,7 +132,7 @@ References to other resources during the destroy phase can cause dependency cycl
 			dirPath: filepath.Join(testDataDir, "invalid-moduleconfigs"),
 			tfv12:   TfV12{},
 			// same error is loaded two times because, both root module and a child module will generated same error
-			wantErr: multierror.Append(fmt.Errorf(errStringInvalidModuleConfigs), fmt.Errorf(errStringInvalidModuleConfigs)),
+			wantErr: multierror.Append(fmt.Errorf(errStringInvalidModuleConfigs), fmt.Errorf(errStringInvalidModuleConfigs)), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 		{
 			name:    "load invalid config dir",
@@ -142,21 +141,21 @@ References to other resources during the destroy phase can cause dependency cycl
 			options: map[string]interface{}{
 				"nonRecursive": true,
 			},
-			wantErr: multierror.Append(fmt.Errorf(testErrorString1)),
+			wantErr: multierror.Append(fmt.Errorf(testErrorString1)), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 		{
 			name:    "load invalid config dir recursive",
 			dirPath: testDataDir,
 			tfv12:   TfV12{},
-			wantErr: multierror.Append(fmt.Errorf(testErrorString1),
+			wantErr: multierror.Append(fmt.Errorf(testErrorString1), //lint:ignore SA1006 placeholder %s are specified in string constants
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "deep-modules", "modules")),
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "deep-modules", "modules", "m4", "modules")),
-				fmt.Errorf(errStringDestroyProvisioners),
+				fmt.Errorf(errStringDestroyProvisioners), //lint:ignore SA1006 placeholder %s are specified in string constants
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "invalid-module-source")),
-				fmt.Errorf(errStringModuleSourceInvalid),
-				fmt.Errorf(errStringInvalidModuleConfigs),
-				fmt.Errorf(errStringInvalidModuleConfigs),
-				fmt.Errorf(testErrorString2),
+				fmt.Errorf(errStringModuleSourceInvalid),  //lint:ignore SA1006 placeholder %s are specified in string constants
+				fmt.Errorf(errStringInvalidModuleConfigs), //lint:ignore SA1006 placeholder %s are specified in string constants
+				fmt.Errorf(errStringInvalidModuleConfigs), //lint:ignore SA1006 placeholder %s are specified in string constants
+				fmt.Errorf(testErrorString2),              //lint:ignore SA1006 placeholder %s are specified in string constants
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "relative-moduleconfigs")),
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "tfjson")),
 			),
@@ -168,19 +167,19 @@ References to other resources during the destroy phase can cause dependency cycl
 			options: map[string]interface{}{
 				"nonRecursive": true,
 			},
-			wantErr: multierror.Append(fmt.Errorf(testErrorString2)),
+			wantErr: multierror.Append(fmt.Errorf(testErrorString2)), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 		{
 			name:    "load multiple provider config dir recursive",
 			dirPath: multipleProvidersDir,
 			tfv12:   TfV12{},
-			wantErr: multierror.Append(fmt.Errorf(testErrorString2)),
+			wantErr: multierror.Append(fmt.Errorf(testErrorString2)), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 		{
 			name:    "invalid module source directory",
 			dirPath: filepath.Join(testDataDir, "invalid-module-source", "invalid_source"),
 			tfv12:   TfV12{},
-			wantErr: multierror.Append(fmt.Errorf(errStringModuleSourceInvalid)),
+			wantErr: multierror.Append(fmt.Errorf(errStringModuleSourceInvalid)), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 	}
 
@@ -292,7 +291,7 @@ References to other resources during the destroy phase can cause dependency cycl
 			var want output.AllResourceConfigs
 
 			// Read the expected value and unmarshal into want
-			contents, _ := ioutil.ReadFile(tt.tfJSONFile)
+			contents, _ := os.ReadFile(tt.tfJSONFile)
 			if utils.IsWindowsPlatform() {
 				contents = utils.ReplaceWinNewLineBytes(contents)
 			}

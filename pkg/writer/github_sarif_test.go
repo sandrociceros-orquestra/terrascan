@@ -3,10 +3,12 @@ package writer
 import (
 	"bytes"
 	"fmt"
-	"github.com/accurics/terrascan/pkg/utils"
-	"github.com/accurics/terrascan/pkg/version"
+	"io"
 	"strings"
 	"testing"
+
+	"github.com/tenable/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/version"
 )
 
 const violationTemplateForGH = `{
@@ -16,9 +18,8 @@ const violationTemplateForGH = `{
             {
               "tool": {
                 "driver": {
+                  "informationUri": "https://github.com/tenable/terrascan",
                   "name": "terrascan",
-                  "version": "%s",
-                  "informationUri": "https://github.com/accurics/terrascan",
                   "rules": [
                     {
                       "id": "AWS.S3Bucket.DS.High.1043",
@@ -31,12 +32,14 @@ const violationTemplateForGH = `{
                         "severity": "HIGH"
                       }
                     }
-                  ]
+                  ],
+                  "version": "%s"
                 }
               },
               "results": [
                 {
                   "ruleId": "AWS.S3Bucket.DS.High.1043",
+                  "ruleIndex": 0,
                   "level": "error",
                   "message": {
                     "text": "S3 bucket Access is allowed to all AWS Account Users."
@@ -46,7 +49,7 @@ const violationTemplateForGH = `{
                       "physicalLocation": {
                         "artifactLocation": {
                           "uri": "%s",
-						  "uriBaseId": "test"
+                          "uriBaseId": "test"
                         },
                         "region": {
                           "startLine": 20
@@ -68,7 +71,7 @@ const violationTemplateForGH = `{
 
 var expectedSarifViolationOutputGH = fmt.Sprintf(violationTemplateForGH, version.GetNumeric(), testpathForGH)
 
-func TestGithubSarifWriter(t *testing.T) {
+func TestGitHubSarifWriter(t *testing.T) {
 
 	type funcInput interface{}
 	tests := []struct {
@@ -78,7 +81,7 @@ func TestGithubSarifWriter(t *testing.T) {
 		expectedOutput string
 	}{
 		{
-			name:           "Sarif Writer for Github: Violations",
+			name:           "Sarif Writer for GitHub: Violations",
 			input:          violationsInput,
 			expectedOutput: expectedSarifViolationOutputGH,
 		},
@@ -86,15 +89,16 @@ func TestGithubSarifWriter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			writer := &bytes.Buffer{}
-			if err := GithubSarifWriter(tt.input, writer); (err != nil) != tt.expectedError {
-				t.Errorf("HumanReadbleWriter() error = gotErr: %v, wantErr: %v", err, tt.expectedError)
+			var bf bytes.Buffer
+			w := []io.Writer{&bf}
+			if err := GitHubSarifWriter(tt.input, w); (err != nil) != tt.expectedError {
+				t.Errorf("HumanReadableWriter() error = gotErr: %v, wantErr: %v", err, tt.expectedError)
 			}
-			outputBytes := writer.Bytes()
+			outputBytes := bf.Bytes()
 			gotOutput := string(bytes.TrimSpace(outputBytes))
 
 			if equal, _ := utils.AreEqualJSON(strings.TrimSpace(gotOutput), strings.TrimSpace(tt.expectedOutput)); !equal {
-				t.Errorf("HumanReadbleWriter() = got: %v, want: %v", gotOutput, tt.expectedOutput)
+				t.Errorf("HumanReadableWriter() = got: %v, want: %v", gotOutput, tt.expectedOutput)
 			}
 		})
 	}

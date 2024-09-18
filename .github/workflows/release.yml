@@ -3,31 +3,28 @@ name: release
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   release:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
-      GO_VERSION: 1.16
+      GO_VERSION: 1.21
     steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      -
-        name: Set up Go
-        uses: actions/setup-go@v2
+      - name: Set up Go
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      -
-        name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v2
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
         with:
           version: latest
-          args: release --rm-dist
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -36,20 +33,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Terrascan
-      uses: actions/checkout@v2
+      - name: Checkout Terrascan
+        uses: actions/checkout@v3
 
-    - name: Build Terrascan docker image
-      run: make docker-build
+      - uses: docker/setup-qemu-action@v2
 
-    - name: Login to docker hub
-      run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u accurics --password-stdin
+      - name: Login to Artifactory
+        run: docker login --username svc_terrascan --password ${{ secrets.ARTIFACTORY_API_TOKEN }}  https://docker-terrascan-local.artifactory.eng.tenable.com
 
-    - name: Push Terrascan latest tag docker image
-      run: make docker-push-latest-tag
+      - name: Build Terrascan latest tag docker image
+        run: make docker-build-push-latest-tag
+        env:
+          MULTIPLATFORM: true
 
-    - name: Build terrascan_atlantis docker image
-      run: make atlantis-docker-build
+      - name: Pull latest Image
+        run:  docker pull docker-terrascan-local.artifactory.eng.tenable.com/tenb-cb:latest
 
-    - name: Push terrascan_atlantis latest tag docker image
-      run: make atlantis-docker-push-latest-tag
+      - name: Run scan on terrascan image
+        run: |
+          image_tag=$(<dockerhub-image-label.txt)
+          docker run -e JKN_USERNAME=${{ secrets.JKN_USERNAME }} -e JKN_PASSWORD=${{ secrets.JKN_PASSWORD }} -t docker-terrascan-local.artifactory.eng.tenable.com/tenb-cb:latest jobs execute-job  --credential-mode env -n teams-deleng-terraform -p deleng-terraform/dockerhub-publish -d "{\"APPID\":\"2054\", \"IMAGE\":\"docker-terrascan-local.artifactory.eng.tenable.com/terrascan:${image_tag}\", \"TARGETS\": \"tenable/terrascan:${image_tag},tenable/terrascan:latest\", \"MULTIARCH\":\"true\"}" --cloudflare-access-secret ${{ secrets.CF_ACCESS_TOKEN }}:${{ secrets.CF_SECRET }}
+
+      - name: Build terrascan_atlantis docker image
+        run: make atlantis-docker-build
+
+      - name: Run scan on terrascan_atlantis image 
+        run: |
+          image_tag=$(<dockerhub-image-label.txt)
+          docker run -e JKN_USERNAME=${{ secrets.JKN_USERNAME }} -e JKN_PASSWORD=${{ secrets.JKN_PASSWORD }} -t docker-terrascan-local.artifactory.eng.tenable.com/tenb-cb:latest jobs execute-job  --credential-mode env -n teams-deleng-terraform -p deleng-terraform/dockerhub-publish -d "{\"APPID\":\"test\", \"IMAGE\":\"docker-terrascan-local.artifactory.eng.tenable.com/terrascan_atlantis:${image_tag}\", \"TARGETS\": \"tenable/terrascan_atlantis:${image_tag}\", \"MULTIARCH\":\"true\"}" --cloudflare-access-secret ${{ secrets.CF_ACCESS_TOKEN }}:${{ secrets.CF_SECRET }}

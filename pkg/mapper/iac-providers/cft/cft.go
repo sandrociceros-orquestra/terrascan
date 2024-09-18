@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,68 +19,70 @@ package cft
 import (
 	"errors"
 
-	"github.com/awslabs/goformation/v5/cloudformation/applicationautoscaling"
-	"github.com/awslabs/goformation/v5/cloudformation/appmesh"
-	"github.com/awslabs/goformation/v5/cloudformation/athena"
-	"github.com/awslabs/goformation/v5/cloudformation/autoscaling"
-	"github.com/awslabs/goformation/v5/cloudformation/backup"
-	"github.com/awslabs/goformation/v5/cloudformation/certificatemanager"
-	"github.com/awslabs/goformation/v5/cloudformation/cloudfront"
-	"github.com/awslabs/goformation/v5/cloudformation/cloudtrail"
-	"github.com/awslabs/goformation/v5/cloudformation/codebuild"
-	"github.com/awslabs/goformation/v5/cloudformation/cognito"
-	"github.com/awslabs/goformation/v5/cloudformation/dms"
-	"github.com/awslabs/goformation/v5/cloudformation/eks"
-	"github.com/awslabs/goformation/v5/cloudformation/emr"
-	"github.com/awslabs/goformation/v5/cloudformation/globalaccelerator"
-	"github.com/awslabs/goformation/v5/cloudformation/lambda"
-	"github.com/awslabs/goformation/v5/cloudformation/msk"
-	"github.com/awslabs/goformation/v5/cloudformation/qldb"
-	"github.com/awslabs/goformation/v5/cloudformation/ram"
-	"github.com/awslabs/goformation/v5/cloudformation/sagemaker"
-	"github.com/awslabs/goformation/v5/cloudformation/sns"
-	"github.com/awslabs/goformation/v5/cloudformation/sqs"
-	"github.com/awslabs/goformation/v5/cloudformation/waf"
+	"github.com/awslabs/goformation/v7/cloudformation/applicationautoscaling"
+	"github.com/awslabs/goformation/v7/cloudformation/appmesh"
+	"github.com/awslabs/goformation/v7/cloudformation/athena"
+	"github.com/awslabs/goformation/v7/cloudformation/autoscaling"
+	"github.com/awslabs/goformation/v7/cloudformation/backup"
+	"github.com/awslabs/goformation/v7/cloudformation/certificatemanager"
+	"github.com/awslabs/goformation/v7/cloudformation/cloudfront"
+	"github.com/awslabs/goformation/v7/cloudformation/cloudtrail"
+	"github.com/awslabs/goformation/v7/cloudformation/codebuild"
+	"github.com/awslabs/goformation/v7/cloudformation/cognito"
+	"github.com/awslabs/goformation/v7/cloudformation/dms"
+	"github.com/awslabs/goformation/v7/cloudformation/eks"
+	"github.com/awslabs/goformation/v7/cloudformation/emr"
+	"github.com/awslabs/goformation/v7/cloudformation/globalaccelerator"
+	"github.com/awslabs/goformation/v7/cloudformation/lambda"
+	"github.com/awslabs/goformation/v7/cloudformation/msk"
+	"github.com/awslabs/goformation/v7/cloudformation/qldb"
+	"github.com/awslabs/goformation/v7/cloudformation/ram"
+	"github.com/awslabs/goformation/v7/cloudformation/sagemaker"
+	"github.com/awslabs/goformation/v7/cloudformation/serverless"
+	"github.com/awslabs/goformation/v7/cloudformation/sns"
+	"github.com/awslabs/goformation/v7/cloudformation/sqs"
+	"github.com/awslabs/goformation/v7/cloudformation/waf"
 
-	cf "github.com/awslabs/goformation/v5/cloudformation/cloudformation"
-	cnf "github.com/awslabs/goformation/v5/cloudformation/config"
-	"github.com/awslabs/goformation/v5/cloudformation/ecr"
-	"github.com/awslabs/goformation/v5/cloudformation/neptune"
-	"github.com/awslabs/goformation/v5/cloudformation/secretsmanager"
-	"github.com/awslabs/goformation/v5/cloudformation/workspaces"
+	cf "github.com/awslabs/goformation/v7/cloudformation/cloudformation"
+	cnf "github.com/awslabs/goformation/v7/cloudformation/config"
+	"github.com/awslabs/goformation/v7/cloudformation/ecr"
+	"github.com/awslabs/goformation/v7/cloudformation/neptune"
+	"github.com/awslabs/goformation/v7/cloudformation/secretsmanager"
+	"github.com/awslabs/goformation/v7/cloudformation/workspaces"
 
-	"github.com/awslabs/goformation/v5/cloudformation/ec2"
-	"github.com/awslabs/goformation/v5/cloudformation/efs"
-	"github.com/awslabs/goformation/v5/cloudformation/elasticache"
+	"github.com/awslabs/goformation/v7/cloudformation/ec2"
+	"github.com/awslabs/goformation/v7/cloudformation/efs"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticache"
 
-	"github.com/awslabs/goformation/v5/cloudformation/dax"
-	"github.com/awslabs/goformation/v5/cloudformation/dynamodb"
-	"github.com/awslabs/goformation/v5/cloudformation/rds"
+	"github.com/awslabs/goformation/v7/cloudformation/dax"
+	"github.com/awslabs/goformation/v7/cloudformation/dynamodb"
+	"github.com/awslabs/goformation/v7/cloudformation/rds"
 
-	"github.com/awslabs/goformation/v5/cloudformation/ecs"
-	"github.com/awslabs/goformation/v5/cloudformation/logs"
+	"github.com/awslabs/goformation/v7/cloudformation/ecs"
+	"github.com/awslabs/goformation/v7/cloudformation/logs"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/mapper/core"
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/cft/config"
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/cft/store"
-	"github.com/accurics/terrascan/pkg/utils"
-	"github.com/awslabs/goformation/v5/cloudformation"
-	"github.com/awslabs/goformation/v5/cloudformation/amazonmq"
-	"github.com/awslabs/goformation/v5/cloudformation/apigateway"
-	"github.com/awslabs/goformation/v5/cloudformation/apigatewayv2"
-	"github.com/awslabs/goformation/v5/cloudformation/docdb"
-	"github.com/awslabs/goformation/v5/cloudformation/elasticloadbalancing"
-	"github.com/awslabs/goformation/v5/cloudformation/elasticloadbalancingv2"
-	"github.com/awslabs/goformation/v5/cloudformation/elasticsearch"
-	"github.com/awslabs/goformation/v5/cloudformation/guardduty"
-	"github.com/awslabs/goformation/v5/cloudformation/iam"
-	"github.com/awslabs/goformation/v5/cloudformation/kinesis"
-	"github.com/awslabs/goformation/v5/cloudformation/kinesisfirehose"
-	"github.com/awslabs/goformation/v5/cloudformation/kms"
-	"github.com/awslabs/goformation/v5/cloudformation/redshift"
-	"github.com/awslabs/goformation/v5/cloudformation/route53"
-	"github.com/awslabs/goformation/v5/cloudformation/s3"
+	"github.com/awslabs/goformation/v7/cloudformation"
+	"github.com/awslabs/goformation/v7/cloudformation/amazonmq"
+	"github.com/awslabs/goformation/v7/cloudformation/apigateway"
+	"github.com/awslabs/goformation/v7/cloudformation/apigatewayv2"
+	"github.com/awslabs/goformation/v7/cloudformation/docdb"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticloadbalancing"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticloadbalancingv2"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticsearch"
+	"github.com/awslabs/goformation/v7/cloudformation/guardduty"
+	"github.com/awslabs/goformation/v7/cloudformation/iam"
+	"github.com/awslabs/goformation/v7/cloudformation/kinesis"
+	"github.com/awslabs/goformation/v7/cloudformation/kinesisfirehose"
+	"github.com/awslabs/goformation/v7/cloudformation/kms"
+	"github.com/awslabs/goformation/v7/cloudformation/redshift"
+	"github.com/awslabs/goformation/v7/cloudformation/route53"
+	"github.com/awslabs/goformation/v7/cloudformation/s3"
+	"github.com/awslabs/goformation/v7/cloudformation/ssm"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/mapper/core"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/config"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/store"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 const errUnsupportedDoc = "unsupported document type"
@@ -190,6 +192,16 @@ func (m cftMapper) mapConfigForResource(r cloudformation.Resource, resourceName 
 		return config.GetEbsVolumeConfig(resource)
 	case *ec2.VPC:
 		return config.GetEc2VpcConfig(resource)
+	case *ec2.SubnetRouteTableAssociation:
+		return config.GetRouteTableAssociationConfig(resource)
+	case *ec2.RouteTable:
+		return config.GetRouteTableConfig(resource)
+	case *ec2.NatGateway:
+		return config.GetNatGatewayConfig(resource)
+	case *ec2.Subnet:
+		return config.GetSubnetConfig(resource)
+	case *ec2.Route:
+		return config.GetRouteConfig(resource)
 	case *efs.FileSystem:
 		return config.GetEfsFileSystemConfig(resource)
 	case *elasticache.CacheCluster:
@@ -251,7 +263,7 @@ func (m cftMapper) mapConfigForResource(r cloudformation.Resource, resourceName 
 	case *ecs.TaskDefinition:
 		return config.GetEcsTaskDefinitionConfig(resource)
 	case *s3.Bucket:
-		return config.GetS3BucketConfig(resource)
+		return config.GetS3BucketConfig(resource, resourceName)
 	case *s3.BucketPolicy:
 		return config.GetS3BucketPolicyConfig(resource)
 	case *sqs.Queue:
@@ -269,6 +281,8 @@ func (m cftMapper) mapConfigForResource(r cloudformation.Resource, resourceName 
 	case *cognito.UserPool:
 		return config.GetCognitoUserPoolConfig(resource)
 	case *lambda.Function:
+		return config.GetLambdaFunctionConfig(resource)
+	case *serverless.Function:
 		return config.GetLambdaFunctionConfig(resource)
 	case *certificatemanager.Certificate:
 		return config.GetCertificateManagerCertificateConfig(resource)
@@ -298,6 +312,10 @@ func (m cftMapper) mapConfigForResource(r cloudformation.Resource, resourceName 
 		return config.GetAppAutoScalingPolicyConfig(resource)
 	case *secretsmanager.RotationSchedule:
 		return config.GetSecretsManagerSecretRotationConfig(resource)
+	case *ssm.Parameter:
+		return config.GetSSMParameterConfig(resource)
+	case *elasticloadbalancingv2.LoadBalancer:
+		return config.GetElasticLoadBalancingV2LoadBalancerConfig(resource, resourceName)
 	default:
 	}
 	return []config.AWSResourceConfig{}

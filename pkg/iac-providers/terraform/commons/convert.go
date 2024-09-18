@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package commons
 
 /*
-	Following code has been borrowed and modifed from:
+	Following code has been borrowed and modified from:
 	https://github.com/tmccombs/hcl2json/blob/5c1402dc2b410e362afee45a3cf15dcb08bc1f2c/convert.go
 */
 

@@ -3,9 +3,9 @@ package policy
 import (
 	"encoding/xml"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/results"
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/results"
 )
 
 const (
@@ -26,7 +26,7 @@ type EngineOutput struct {
 	*results.ViolationStore `json:"results" yaml:"results" xml:"results"`
 }
 
-// EngineOutputFromViolationStore returns an EngineOutput intialized from ViolationStore
+// EngineOutputFromViolationStore returns an EngineOutput initialized from ViolationStore
 func EngineOutputFromViolationStore(store *results.ViolationStore) EngineOutput {
 	return EngineOutput{
 		xml.Name{},

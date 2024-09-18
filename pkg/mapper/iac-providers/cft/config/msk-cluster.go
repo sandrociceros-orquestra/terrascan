@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/msk"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/msk"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // EncryptionInTransitBlock holds config for EncryptionInTransit
 type EncryptionInTransitBlock struct {
@@ -49,13 +52,14 @@ type MskClusterConfig struct {
 }
 
 // GetMskClusterConfig returns config for MskCluster
+// aws_msk_cluster
 func GetMskClusterConfig(c *msk.Cluster) []AWSResourceConfig {
 	var brokerNodeGroupInfo []BrokerNodeGroupInfoBlock
 	if c.BrokerNodeGroupInfo != nil {
 		brokerNodeGroupInfo = make([]BrokerNodeGroupInfoBlock, 1)
 
 		brokerNodeGroupInfo[0].InstanceType = c.BrokerNodeGroupInfo.InstanceType
-		brokerNodeGroupInfo[0].EksVolumeSize = c.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize
+		brokerNodeGroupInfo[0].EksVolumeSize = functions.GetVal(c.BrokerNodeGroupInfo.StorageInfo.EBSStorageInfo.VolumeSize)
 		brokerNodeGroupInfo[0].ClientSubnets = c.BrokerNodeGroupInfo.ClientSubnets
 		brokerNodeGroupInfo[0].SecurityGroups = c.BrokerNodeGroupInfo.SecurityGroups
 	}
@@ -71,15 +75,15 @@ func GetMskClusterConfig(c *msk.Cluster) []AWSResourceConfig {
 		if c.EncryptionInfo.EncryptionInTransit != nil {
 			encryptionInfo[0].EncryptionInTransit = make([]EncryptionInTransitBlock, 1)
 
-			encryptionInfo[0].EncryptionInTransit[0].ClientBroker = c.EncryptionInfo.EncryptionInTransit.ClientBroker
-			encryptionInfo[0].EncryptionInTransit[0].InCluster = c.EncryptionInfo.EncryptionInTransit.InCluster
+			encryptionInfo[0].EncryptionInTransit[0].ClientBroker = functions.GetVal(c.EncryptionInfo.EncryptionInTransit.ClientBroker)
+			encryptionInfo[0].EncryptionInTransit[0].InCluster = functions.GetVal(c.EncryptionInfo.EncryptionInTransit.InCluster)
 		}
 	}
 
 	cf := MskClusterConfig{
 		Config: Config{
 			Name: c.ClusterName,
-			Tags: c.Tags,
+			Tags: functions.PatchAWSTags(c.Tags),
 		},
 		ClusterName:         c.ClusterName,
 		KafkaVersion:        c.KafkaVersion,

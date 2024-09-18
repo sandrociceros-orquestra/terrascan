@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ func ctyToBool(ctyVal cty.Value) (interface{}, error) {
 }
 
 // ctyToSlice tries to convert the given cty.Value into golang slice of
-// interfce{}
+// interface{}
 func ctyToSlice(ctyVal cty.Value) (interface{}, error) {
 	var val []interface{}
 	var allErrs error

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/ecs"
+	"github.com/awslabs/goformation/v7/cloudformation/ecs"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // EcsTaskDefinitionConfig holds config for aws_ecs_task_definition
@@ -30,12 +31,12 @@ type EcsTaskDefinitionConfig struct {
 	Volumes              []VolumeConfig `json:"volume"`
 }
 
-// VolumeConfig holds config for volume attirbute of aws_ecs_task_definition
+// VolumeConfig holds config for volume attribute of aws_ecs_task_definition
 type VolumeConfig struct {
 	EfsVolumeConfiguration EfsVolumeConfig `json:"efs_volume_configuration"`
 }
 
-// EfsVolumeConfig holds config for efs_volume_configuration atrtribute of volume
+// EfsVolumeConfig holds config for efs_volume_configuration attribute of volume
 type EfsVolumeConfig struct {
 	TransitEncryption string `json:"transit_encryption"`
 }
@@ -45,18 +46,19 @@ type ContainerDefinitionConfig struct {
 	Environment []EnvironmentConfig `json:"environment"`
 }
 
-// EnvironmentConfig holds config for environment atrtribute for container_definitions
+// EnvironmentConfig holds config for environment attribute for container_definitions
 type EnvironmentConfig struct {
 	Name string `json:"name"`
 }
 
 // GetEcsTaskDefinitionConfig returns config for aws_ecs_service and aws_ecs_task_definition
+// aws_ecs_task_definition
 func GetEcsTaskDefinitionConfig(t *ecs.TaskDefinition) []AWSResourceConfig {
 	cf := EcsTaskDefinitionConfig{
 		Config: Config{
 			Tags: t.Tags,
 		},
-		NetworkMode: t.NetworkMode,
+		NetworkMode: functions.GetVal(t.NetworkMode),
 	}
 
 	if t.ContainerDefinitions != nil {
@@ -68,7 +70,7 @@ func GetEcsTaskDefinitionConfig(t *ecs.TaskDefinition) []AWSResourceConfig {
 				env := make([]EnvironmentConfig, 0)
 				for _, kvPair := range cDef.Environment {
 					env = append(env, EnvironmentConfig{
-						Name: kvPair.Name,
+						Name: functions.GetVal(kvPair.Name),
 					})
 				}
 				cDefs = append(cDefs, ContainerDefinitionConfig{
@@ -88,7 +90,7 @@ func GetEcsTaskDefinitionConfig(t *ecs.TaskDefinition) []AWSResourceConfig {
 			if volume.EFSVolumeConfiguration != nil {
 				volumes = append(volumes, VolumeConfig{
 					EfsVolumeConfiguration: EfsVolumeConfig{
-						TransitEncryption: volume.EFSVolumeConfiguration.TransitEncryption,
+						TransitEncryption: functions.GetVal(volume.EFSVolumeConfiguration.TransitEncryption),
 					},
 				})
 			}

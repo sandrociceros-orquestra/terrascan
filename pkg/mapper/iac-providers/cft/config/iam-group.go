@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/awslabs/goformation/v5/cloudformation/iam"
+	"github.com/awslabs/goformation/v7/cloudformation/iam"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
@@ -42,6 +43,7 @@ type IamGroupConfig struct {
 }
 
 // GetIamGroupConfig returns config for aws_iam_group_policy
+// aws_iam_group, aws_iam_group_policy
 func GetIamGroupConfig(r *iam.Group) []AWSResourceConfig {
 	// aws_iam_role_policy as a SubResource
 	policyConfigs := make([]AWSResourceConfig, 0)
@@ -69,9 +71,9 @@ func GetIamGroupConfig(r *iam.Group) []AWSResourceConfig {
 
 	groupConfig := IamGroupConfig{
 		Config: Config{
-			Name: r.GroupName,
+			Name: functions.GetVal(r.GroupName),
 		},
-		Name: r.GroupName,
+		Name: functions.GetVal(r.GroupName),
 	}
 
 	var groupPolicyConfig AWSResourceConfig

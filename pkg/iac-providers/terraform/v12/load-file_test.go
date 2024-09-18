@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,13 +20,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 var testDataDir = "testdata"
@@ -36,7 +36,7 @@ var tfJSONDir = filepath.Join(testDataDir, "tfjson")
 
 func TestLoadIacFile(t *testing.T) {
 
-	testErrorString1 := `error occured while loading config file 'not-there'. error:
+	testErrorString1 := `error occurred while loading config file 'not-there'. error:
 <nil>: Failed to read file; The file "not-there" could not be read.
 `
 	testErrorString2 := fmt.Sprintf(`failed to load iac file '%s'. error:
@@ -68,7 +68,7 @@ References to other resources during the destroy phase can cause dependency cycl
 			name:     "invalid filepath",
 			filePath: "not-there",
 			tfv12:    TfV12{},
-			wantErr:  fmt.Errorf(testErrorString1),
+			wantErr:  fmt.Errorf(testErrorString1), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 		{
 			name:     "empty config",
@@ -79,13 +79,13 @@ References to other resources during the destroy phase can cause dependency cycl
 			name:     "invalid config",
 			filePath: emptyTfFilePath,
 			tfv12:    TfV12{},
-			wantErr:  fmt.Errorf(testErrorString2),
+			wantErr:  fmt.Errorf(testErrorString2), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 		{
 			name:     "destroy-provisioners",
 			filePath: nonEmptyTfFilePath,
 			tfv12:    TfV12{},
-			wantErr:  fmt.Errorf(testErrorString3),
+			wantErr:  fmt.Errorf(testErrorString3), //lint:ignore SA1006 placeholder %s are specified in string constants
 		},
 	}
 
@@ -131,7 +131,7 @@ References to other resources during the destroy phase can cause dependency cycl
 
 			gotBytes, _ := json.MarshalIndent(got, "", "  ")
 			gotBytes = append(gotBytes, []byte{'\n'}...)
-			wantBytes, _ := ioutil.ReadFile(tt.tfJSONFile)
+			wantBytes, _ := os.ReadFile(tt.tfJSONFile)
 
 			if utils.IsWindowsPlatform() {
 				gotBytes = utils.ReplaceCarriageReturnBytes(gotBytes)

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/rds"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/rds"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // DBEventSubscriptionConfig holds config for aws_db_event_subscription resource
 type DBEventSubscriptionConfig struct {
@@ -29,20 +32,19 @@ type DBEventSubscriptionConfig struct {
 }
 
 // GetDBEventSubscriptionConfig returns config for aws_db_event_subscription resource
+// aws_db_event_subscription
 func GetDBEventSubscriptionConfig(d *rds.EventSubscription) []AWSResourceConfig {
-
 	cf := DBEventSubscriptionConfig{
 		Config:          Config{},
 		SnsTopicArn:     d.SnsTopicArn,
-		Enabled:         d.Enabled,
+		Enabled:         functions.GetVal(d.Enabled),
 		EventCategories: d.EventCategories,
 		SourceIds:       d.SourceIds,
-		SourceType:      d.SourceType,
+		SourceType:      functions.GetVal(d.SourceType),
 	}
 
 	return []AWSResourceConfig{{
 		Resource: cf,
 		Metadata: d.AWSCloudFormationMetadata,
 	}}
-
 }

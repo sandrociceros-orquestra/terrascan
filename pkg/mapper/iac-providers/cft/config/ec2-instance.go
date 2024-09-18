@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/cft/store"
-	"github.com/awslabs/goformation/v5/cloudformation/ec2"
+	"github.com/awslabs/goformation/v7/cloudformation/ec2"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/store"
 )
 
 // GetNetworkInterface represents subresource aws_network_interface for NetworkInterface attribute
@@ -53,36 +54,43 @@ type NetworkInterfaceBlock struct {
 // EC2InstanceConfig holds config for EC2Instance
 type EC2InstanceConfig struct {
 	Config
-	AMI                 string                  `json:"ami"`
-	InstanceType        string                  `json:"instance_type"`
-	EBSOptimized        bool                    `json:"ebs_optimized"`
-	Hibernation         bool                    `json:"hibernation"`
-	Monitoring          bool                    `json:"monitoring"`
-	IAMInstanceProfile  string                  `json:"iam_instance_profile"`
-	VPCSecurityGroupIDs []string                `json:"vpc_security_group_ids"`
-	NetworkInterface    []NetworkInterfaceBlock `json:"network_interface"`
+	AMI                      string                  `json:"ami"`
+	InstanceType             string                  `json:"instance_type"`
+	EBSOptimized             bool                    `json:"ebs_optimized"`
+	Hibernation              bool                    `json:"hibernation"`
+	Monitoring               bool                    `json:"monitoring"`
+	IAMInstanceProfile       string                  `json:"iam_instance_profile"`
+	VPCSecurityGroupIDs      []string                `json:"vpc_security_group_ids"`
+	NetworkInterface         []NetworkInterfaceBlock `json:"network_interface"`
+	UserData                 string                  `json:"user_data_base64"`
+	AssociatePublicIPAddress bool                    `json:"associate_public_ip_address"`
+	SubnetID                 string                  `json:"subnet_id"`
 }
 
 // GetEC2InstanceConfig returns config for EC2Instance
+// aws_instance
 func GetEC2InstanceConfig(i *ec2.Instance, instanceName string) []AWSResourceConfig {
-	nics := make([]NetworkInterfaceBlock, len(i.NetworkInterfaces))
-	niconfigs := make([]NetworkInterfaceConfig, len(i.NetworkInterfaces))
-	awsconfig := make([]AWSResourceConfig, len(i.NetworkInterfaces))
+	networkInterfaces := i.NetworkInterfaces
 
-	for index := range i.NetworkInterfaces {
-		nics[index].NetworkInterfaceID = i.NetworkInterfaces[index].NetworkInterfaceId
-		nics[index].DeleteOnTermination = i.NetworkInterfaces[index].DeleteOnTermination
+	nics := make([]NetworkInterfaceBlock, len(networkInterfaces))
+	niconfigs := make([]NetworkInterfaceConfig, len(networkInterfaces))
+	awsconfig := make([]AWSResourceConfig, len(networkInterfaces))
+	associatePublicAddress := false
+	var vpcSecurityID []string
+	for index, networkInterface := range networkInterfaces {
+		nics[index].NetworkInterfaceID = functions.GetVal(networkInterface.NetworkInterfaceId)
+		nics[index].DeleteOnTermination = functions.GetVal(networkInterface.DeleteOnTermination)
 		var devindex int
-		devindex, err := strconv.Atoi(i.NetworkInterfaces[index].DeviceIndex)
+		devindex, err := strconv.Atoi(networkInterface.DeviceIndex)
 		if err != nil {
 			devindex = 0
 		}
 		nics[index].DeviceIndex = devindex
 
 		// create aws_network_interface resource on the fly for every network interface used in aws_instance
-		niconfigs[index].SubnetID = i.NetworkInterfaces[index].SubnetId
-		if i.NetworkInterfaces[index].PrivateIpAddress != "" {
-			niconfigs[index].PrivateIPs = []string{i.NetworkInterfaces[index].PrivateIpAddress}
+		niconfigs[index].SubnetID = functions.GetVal(networkInterface.SubnetId)
+		if networkInterface.PrivateIpAddress != nil {
+			niconfigs[index].PrivateIPs = []string{functions.GetVal(networkInterface.PrivateIpAddress)}
 		}
 
 		nicname := fmt.Sprintf("%s%d", instanceName, index)
@@ -95,24 +103,49 @@ func GetEC2InstanceConfig(i *ec2.Instance, instanceName string) []AWSResourceCon
 		awsconfig[index].Name = nicname
 		awsconfig[index].Resource = niconfigs[index]
 		awsconfig[index].Metadata = i.AWSCloudFormationMetadata
+		if networkInterface.AssociatePublicIpAddress != nil {
+			associatePublicAddress = associatePublicAddress || *networkInterface.AssociatePublicIpAddress
+		}
+		if networkInterface.GroupSet != nil {
+			for _, groupName := range networkInterface.GroupSet {
+				if groupName != "" {
+					vpcSecurityID = append(vpcSecurityID, groupName)
+				}
+			}
+
+		}
+	}
+	subnetID := ""
+	if i.SubnetId != nil {
+		subnetID = *i.SubnetId
+	}
+
+	if i.SecurityGroupIds != nil {
+		vpcSecurityID = append(vpcSecurityID, i.SecurityGroupIds...)
 	}
 
 	ec2Config := EC2InstanceConfig{
 		Config: Config{
-			Tags: i.Tags,
+			Tags: functions.PatchAWSTags(i.Tags),
 			Name: instanceName,
 		},
-		AMI:                 i.ImageId,
-		InstanceType:        i.InstanceType,
-		EBSOptimized:        i.EbsOptimized,
-		Monitoring:          i.Monitoring,
-		IAMInstanceProfile:  i.IamInstanceProfile,
-		VPCSecurityGroupIDs: i.SecurityGroupIds,
-		NetworkInterface:    nics,
+		AMI:                      functions.GetVal(i.ImageId),
+		InstanceType:             functions.GetVal(i.InstanceType),
+		EBSOptimized:             functions.GetVal(i.EbsOptimized),
+		Monitoring:               functions.GetVal(i.Monitoring),
+		IAMInstanceProfile:       functions.GetVal(i.IamInstanceProfile),
+		VPCSecurityGroupIDs:      vpcSecurityID,
+		NetworkInterface:         nics,
+		AssociatePublicIPAddress: associatePublicAddress,
+		SubnetID:                 subnetID,
+	}
+
+	if i.UserData != nil {
+		ec2Config.UserData = *i.UserData
 	}
 
 	if i.HibernationOptions != nil {
-		ec2Config.Hibernation = i.HibernationOptions.Configured
+		ec2Config.Hibernation = functions.GetVal(i.HibernationOptions.Configured)
 	}
 
 	var awsconfigec2 AWSResourceConfig

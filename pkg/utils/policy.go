@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// GetAbsPolicyConfigPaths tranforms the provided policy base path and repo path into absolute paths
+// GetAbsPolicyConfigPaths transforms the provided policy base path and repo path into absolute paths
 func GetAbsPolicyConfigPaths(policyBasePath, policyRepoPath string) (string, string, error) {
 	absolutePolicyBasePath, err := GetAbsPath(policyBasePath)
 	if err != nil {

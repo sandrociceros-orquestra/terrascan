@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,15 +21,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
 	"github.com/hashicorp/hcl/v2"
 	hclConfigs "github.com/hashicorp/terraform/configs"
 	"github.com/spf13/afero"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
 	"go.uber.org/zap"
 )
 
 // LoadIacFile parses the given terraform file from the given file path
-func LoadIacFile(absFilePath string) (allResourcesConfig output.AllResourceConfigs, err error) {
+func LoadIacFile(absFilePath, terraformVersion string) (allResourcesConfig output.AllResourceConfigs, err error) {
 
 	// new terraform config parser
 	parser := hclConfigs.NewParser(afero.NewOsFs())
@@ -37,15 +37,15 @@ func LoadIacFile(absFilePath string) (allResourcesConfig output.AllResourceConfi
 	// load current iac file
 	hclFile, diags := parser.LoadConfigFile(absFilePath)
 	if hclFile == nil {
-		errMessage := fmt.Sprintf("error occured while loading config file '%s'. error:\n%v\n", absFilePath, getErrorMessagesFromDiagnostics(diags))
+		errMessage := fmt.Sprintf("error occurred while loading config file '%s'. error:\n%v\n", absFilePath, getErrorMessagesFromDiagnostics(diags))
 		zap.S().Debug(errMessage)
-		return allResourcesConfig, fmt.Errorf(errMessage)
+		return allResourcesConfig, fmt.Errorf(errMessage) //lint:ignore SA1006 placeholder %s are specified in string constants
 	}
 
-	if diags != nil {
+	if diags.HasErrors() {
 		errMessage := fmt.Sprintf("failed to load iac file '%s'. error:\n%v\n", absFilePath, getErrorMessagesFromDiagnostics(diags))
 		zap.S().Debug(errMessage)
-		return allResourcesConfig, fmt.Errorf(errMessage)
+		return allResourcesConfig, fmt.Errorf(errMessage) //lint:ignore SA1006 placeholder %s are specified in string constants
 	}
 
 	// initialize normalized output
@@ -60,6 +60,9 @@ func LoadIacFile(absFilePath string) (allResourcesConfig output.AllResourceConfi
 			return allResourcesConfig, fmt.Errorf("failed to create ResourceConfig")
 		}
 
+		resourceConfig.TerraformVersion = terraformVersion
+		managedResource.Provider = ResolveProvider(managedResource, hclFile.RequiredProviders)
+		resourceConfig.ProviderVersion = GetProviderVersion(hclFile, managedResource.Provider, terraformVersion)
 		// set module name
 		// module name for the file scan will always be root
 		resourceConfig.ModuleName = "root"

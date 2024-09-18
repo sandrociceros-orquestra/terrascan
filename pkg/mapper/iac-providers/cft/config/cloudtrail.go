@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/cloudtrail"
+	"github.com/awslabs/goformation/v7/cloudformation/cloudtrail"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // CloudTrailConfig holds config for aws_cloudtrail
@@ -30,18 +31,14 @@ type CloudTrailConfig struct {
 }
 
 // GetCloudTrailConfig returns config for aws_cloudtrail
+// aws_cloudtrail
 func GetCloudTrailConfig(t *cloudtrail.Trail) []AWSResourceConfig {
 	cf := CloudTrailConfig{
-		Config:                  Config{Tags: t.Tags, Name: t.TrailName},
+		Config:                  Config{Tags: t.Tags, Name: functions.GetVal(t.TrailName)},
 		EnableLogFileValidation: t.EnableLogFileValidation,
 		IsMultiRegionTrail:      t.IsMultiRegionTrail,
 	}
-	if len(t.KMSKeyId) > 0 {
-		cf.KmsKeyID = t.KMSKeyId
-	}
-	if len(t.SnsTopicName) > 0 {
-		cf.SnsTopicName = t.SnsTopicName
-	}
-
+	cf.KmsKeyID = functions.GetVal(t.KMSKeyId)
+	cf.SnsTopicName = functions.GetVal(t.SnsTopicName)
 	return []AWSResourceConfig{{Resource: cf, Metadata: t.AWSCloudFormationMetadata}}
 }

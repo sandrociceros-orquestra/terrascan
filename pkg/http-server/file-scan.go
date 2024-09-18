@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,17 +19,17 @@ package httpserver
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/config"
-	"github.com/accurics/terrascan/pkg/runtime"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/gorilla/mux"
+	"github.com/tenable/terrascan/pkg/config"
+	"github.com/tenable/terrascan/pkg/runtime"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -60,7 +60,7 @@ func (g *APIHandler) scanFile(w http.ResponseWriter, r *http.Request) {
 	// the Header and the size of the file
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		errMsg := fmt.Sprintf("failed to retreive uploaded file. error: '%v'", err)
+		errMsg := fmt.Sprintf("failed to retrieve uploaded file. error: '%v'", err)
 		zap.S().Error(errMsg)
 		apiErrorResponse(w, errMsg, http.StatusInternalServerError)
 		return
@@ -77,7 +77,7 @@ func (g *APIHandler) scanFile(w http.ResponseWriter, r *http.Request) {
 
 	// Create a temporary file within temp directory
 	tempFileTemplate := fmt.Sprintf("terrascan-*%s", fileExtension)
-	tempFile, err := ioutil.TempFile("", tempFileTemplate)
+	tempFile, err := os.CreateTemp("", tempFileTemplate)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to create temp file. error: '%v'", err)
 		zap.S().Error(errMsg)
@@ -88,7 +88,7 @@ func (g *APIHandler) scanFile(w http.ResponseWriter, r *http.Request) {
 	zap.S().Debugf("create temp config file at '%s'", tempFile.Name())
 
 	// read all of the contents of uploaded file
-	fileBytes, err := ioutil.ReadAll(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to read uploaded file. error: '%v'", err)
 		zap.S().Error(errMsg)
@@ -178,10 +178,10 @@ func (g *APIHandler) scanFile(w http.ResponseWriter, r *http.Request) {
 	var executor *runtime.Executor
 	if g.test {
 		executor, err = runtime.NewExecutor(iacType, iacVersion, cloudType,
-			tempFile.Name(), "", []string{"./testdata/testpolicies"}, scanRules, skipRules, categories, severity, false, false, false, notificationWebhookURL, notificationWebhookToken, "", "")
+			tempFile.Name(), "", []string{"./testdata/testpolicies"}, scanRules, skipRules, categories, severity, false, false, false, notificationWebhookURL, notificationWebhookToken, "", "", []string{})
 	} else {
 		executor, err = runtime.NewExecutor(iacType, iacVersion, cloudType,
-			tempFile.Name(), "", getPolicyPathFromConfig(), scanRules, skipRules, categories, severity, false, false, findVulnerabilities, notificationWebhookURL, notificationWebhookToken, "", "")
+			tempFile.Name(), "", getPolicyPathFromConfig(), scanRules, skipRules, categories, severity, false, false, findVulnerabilities, notificationWebhookURL, notificationWebhookToken, "", "", []string{})
 	}
 	if err != nil {
 		zap.S().Error(err)

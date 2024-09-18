@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ func SupportedIacProviders() []string {
 	return iacTypes
 }
 
-// SupportedIacVersions retuns a string of Iac providers and corresponding supported versions
+// SupportedIacVersions returns a string of Iac providers and corresponding supported versions
 func SupportedIacVersions() []string {
 	var iacVersions []string
 	for iac, versions := range supportedIacProviders {
@@ -77,6 +77,17 @@ func SupportedIacVersions() []string {
 	}
 	sort.Strings(iacVersions)
 	return iacVersions
+}
+
+// GetProviderIacVersions returns list of Iac Provider versions for the given IaC type
+func GetProviderIacVersions(iacType string) []string {
+	var versions []string
+
+	for version := range supportedIacProviders[supportedIacType(iacType)] {
+		versions = append(versions, string(version))
+	}
+	sort.Strings(versions)
+	return versions
 }
 
 // GetDefaultIacVersion returns the default IaC version for the given IaC type

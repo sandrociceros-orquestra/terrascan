@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ package httpserver
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
-	admissionWebhook "github.com/accurics/terrascan/pkg/k8s/admission-webhook"
 	"github.com/gorilla/mux"
+	admissionWebhook "github.com/tenable/terrascan/pkg/k8s/admission-webhook"
 	"go.uber.org/zap"
 
 	v1 "k8s.io/api/admission/v1"
@@ -44,7 +44,7 @@ func (g *APIHandler) validateK8SWebhook(w http.ResponseWriter, r *http.Request) 
 	)
 
 	// Read the request into byte array
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		msg := fmt.Sprintf("failed to read validating admission webhook request body, error: '%v'", err)
 		apiErrorResponse(w, msg, http.StatusBadRequest)

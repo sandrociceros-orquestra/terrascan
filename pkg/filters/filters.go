@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package filters
 
 import (
-	"github.com/accurics/terrascan/pkg/policy"
+	"github.com/tenable/terrascan/pkg/policy"
 )
 
 // RegoMetadataPreLoadFilter is a pre load filter
@@ -41,7 +41,7 @@ func NewRegoMetadataPreLoadFilter(scanRules, skipRules, categories, policyTypes 
 		severity:    severity,
 		// add applicable filter specs to the list
 		filterSpecs: []policy.FilterSpecification{
-			RerefenceIDsFilterSpecification{scanRules},
+			ReferenceIDsFilterSpecification{scanRules},
 			CategoryFilterSpecification{categories: categories},
 			SeverityFilterSpecification{severity: severity},
 			PolicyTypesFilterSpecification{policyTypes: policyTypes},
@@ -49,17 +49,17 @@ func NewRegoMetadataPreLoadFilter(scanRules, skipRules, categories, policyTypes 
 	}
 }
 
-// IsFiltered checks whether a RegoMetada should be filtered or not
+// IsFiltered checks whether a RegoMetadata should be filtered or not
 func (r *RegoMetadataPreLoadFilter) IsFiltered(regoMetadata *policy.RegoMetadata) bool {
-	// if skip rules are specified, RegoMetada is not filtered
+	// if skip rules are specified, RegoMetadata is not filtered
 	if len(r.skipRules) < 1 {
 		return false
 	}
-	refIDsSpec := RerefenceIDsFilterSpecification{r.skipRules}
+	refIDsSpec := ReferenceIDsFilterSpecification{r.skipRules}
 	return refIDsSpec.IsSatisfied(regoMetadata)
 }
 
-// IsAllowed checks whether a RegoMetada should be allowed or not
+// IsAllowed checks whether a RegoMetadata should be allowed or not
 func (r *RegoMetadataPreLoadFilter) IsAllowed(regoMetadata *policy.RegoMetadata) bool {
 	andSpec := AndFilterSpecification{r.filterSpecs}
 	return andSpec.IsSatisfied(regoMetadata)

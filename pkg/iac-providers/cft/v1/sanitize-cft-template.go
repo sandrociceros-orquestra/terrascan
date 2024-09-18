@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,32 +23,71 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/awslabs/goformation/v5/cloudformation"
-	"github.com/awslabs/goformation/v5/cloudformation/policies"
-	"github.com/awslabs/goformation/v5/intrinsics"
+	"github.com/awslabs/goformation/v7/cloudformation"
+	"github.com/awslabs/goformation/v7/cloudformation/policies"
+	"github.com/awslabs/goformation/v7/intrinsics"
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v3"
 )
 
-func (a *CFTV1) sanitizeCftTemplate(data []byte, isYAML bool) ([]byte, error) {
+// PARAMETERS is a constant to fetch Parameters from CFT
+const PARAMETERS = "Parameters"
+
+// RESOURCES is a constant to fetch Resources from CFT
+const RESOURCES = "Resources"
+
+func (a *CFTV1) sanitizeCftTemplate(fileName string, data []byte, isYAML bool) (map[string]interface{}, error) {
 	var (
 		intrinsified []byte
 		err          error
 	)
-
 	if isYAML {
-		// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
-		intrinsified, err = intrinsics.ProcessYAML(data, nil)
-		if err != nil {
-			return nil, fmt.Errorf("error while resolving intrinsic functions, error %w", err)
+		fallbackToDefaultProcessing := false
+
+		for i := 0; i < 1; i++ {
+			// convert the yaml into json
+			jsonData, err := a.ReadYAMLFileIntoJSON(fileName)
+			if err == nil {
+				jsonData, err := a.resolveResourceIDs(jsonData)
+				if err != nil {
+					zap.S().Debug(fmt.Sprintf("error while resolving Resource IDs, error %s", err.Error()))
+					fallbackToDefaultProcessing = true
+					break
+				}
+				intrinsified, err = intrinsics.ProcessJSON(jsonData, nil)
+				if err != nil {
+					zap.S().Debug(fmt.Sprintf("error while resolving Resource IDs, error %s", err.Error()))
+					fallbackToDefaultProcessing = true
+					break
+				}
+			}
+		}
+		if fallbackToDefaultProcessing || len(intrinsified) == 0 { // fallback to default behaviour of yaml processing
+			data, err = removeRefAnchors(data)
+			if err != nil {
+				return nil, err
+			}
+			// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
+			intrinsified, err = intrinsics.ProcessYAML(data, nil)
+			if err != nil {
+				return nil, fmt.Errorf("error while resolving intrinsic functions, error %w", err)
+			}
 		}
 	} else {
-		// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
-		intrinsified, err = intrinsics.ProcessJSON(data, nil)
-		if err != nil {
-			return nil, fmt.Errorf("error while resolving intrinsic functions, error %w", err)
+		jsonData, err := a.resolveResourceIDs(data)
+		if err == nil {
+			intrinsified, err = intrinsics.ProcessJSON(jsonData, nil)
+			if err != nil {
+				return nil, fmt.Errorf("error while resolving intrinsic functions, error %w", err)
+			}
+		} else {
+			// Process all AWS CloudFormation intrinsic functions (e.g. Fn::Join)
+			intrinsified, err = intrinsics.ProcessJSON(data, nil)
+			if err != nil {
+				return nil, fmt.Errorf("error while resolving intrinsic functions, error %w", err)
+			}
 		}
 	}
-
 	templateFileMap := make(map[string]interface{})
 
 	err = json.Unmarshal(intrinsified, &templateFileMap)
@@ -57,25 +96,31 @@ func (a *CFTV1) sanitizeCftTemplate(data []byte, isYAML bool) ([]byte, error) {
 	}
 
 	// sanitize Parameters
-	params, ok := templateFileMap["Parameters"]
+	params, ok := templateFileMap[PARAMETERS]
+	var pMap map[string]interface{}
+	pMapconverted := make(map[string]interface{})
 	if ok {
-		pMap, ok := params.(map[string]interface{})
+		pMap, ok = params.(map[string]interface{})
 		if ok {
 			for pName := range pMap {
 				zap.S().Debug(fmt.Sprintf("inspecting parameter '%s'", pName))
 				inspectAndSanitizeParameters(pMap[pName])
+				resultMap, found := convertFloat64ToString(pMap[pName])
+				if found {
+					pMapconverted[pName] = resultMap
+				}
 			}
 		}
 	}
 
 	// sanitize resources
-	r, ok := templateFileMap["Resources"]
+	r, ok := templateFileMap[RESOURCES]
 	if ok {
 		rMap, ok := r.(map[string]interface{})
 		if ok {
 			for rName := range rMap {
 				zap.S().Debug("inspecting resource", zap.String("Resource Name", rName))
-				if shouldRemoveResource := inspectAndSanitizeResource(rMap[rName]); shouldRemoveResource {
+				if shouldRemoveResource := inspectAndSanitizeResource(rMap[rName], pMapconverted); shouldRemoveResource {
 					// we would remove any resource from the map for which goformation doesn't have a type defined
 					delete(rMap, rName)
 				}
@@ -83,11 +128,68 @@ func (a *CFTV1) sanitizeCftTemplate(data []byte, isYAML bool) ([]byte, error) {
 		}
 	}
 
-	sanitized, err := json.Marshal(templateFileMap)
+	return templateFileMap, nil
+}
+
+func removeRefAnchors(data []byte) ([]byte, error) {
+	const REF = "!ref"
+	const DoubleColon = "::"
+	strdata := string(data)
+	words := strings.Split(strdata, " ")
+
+	var cfnmap map[any]any
+	err := yaml.Unmarshal(data, &cfnmap)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error while unmarshalling yaml, error %w", err)
 	}
-	return sanitized, nil
+
+	cfnJSONMap := anyMapToStringMap(cfnmap)
+	paramsMap, paramsOk := cfnJSONMap[PARAMETERS].(map[string]any)
+
+	for i := range words {
+		current := strings.ToLower(words[i])
+		if len(words) == i+1 {
+			break
+		}
+
+		if strings.Contains(current, REF) {
+			next := strings.TrimSpace(words[i+1])
+			nextLower := strings.ToLower(words[i+1])
+
+			if strings.Contains(nextLower, "aws::") {
+				if i+1 < len(words) { // check edge case
+					words[i+1] = strings.ReplaceAll(nextLower, DoubleColon, "-")
+				}
+				continue
+			}
+
+			if paramsOk {
+				if _, ok := paramsMap[next]; ok {
+					continue
+				}
+			}
+		}
+
+		if strings.Contains(current, REF) {
+			words[i] = strings.Replace(current, REF, "", 1)
+		}
+	}
+
+	strdata = strings.Join(words, " ")
+	return []byte(strdata), nil
+}
+
+func anyMapToStringMap(cfnmap map[any]any) map[string]any {
+	res := map[string]any{}
+	for k, v := range cfnmap {
+		switch v2 := v.(type) {
+		case map[any]any:
+			res[fmt.Sprint(k)] = anyMapToStringMap(v2)
+		default:
+			res[fmt.Sprint(k)] = v
+		}
+	}
+	return res
 }
 
 func inspectAndSanitizeParameters(p interface{}) {
@@ -112,7 +214,7 @@ func inspectAndSanitizeParameters(p interface{}) {
 	}
 }
 
-func inspectAndSanitizeResource(r interface{}) (shouldRemoveResource bool) {
+func inspectAndSanitizeResource(r interface{}, pMap map[string]interface{}) (shouldRemoveResource bool) {
 	resMap, ok := r.(map[string]interface{})
 	if !ok {
 		zap.S().Debug("invalid data for 'Resource', should be of type map[string]interface{}")
@@ -169,8 +271,8 @@ func inspectAndSanitizeResource(r interface{}) (shouldRemoveResource bool) {
 			if val != nil {
 				propMap[propName] = val
 			}
+			findKeyAndReplace(propMap[propName], pMap)
 		}
-
 		inspectAndSanitizeResourceAttributes(resMap)
 	}
 	return
@@ -367,4 +469,185 @@ func examineStruct(t reflect.Type) map[string]reflect.StructField {
 		m[key] = f
 	}
 	return m
+}
+
+func convertFloat64ToString(paramMap interface{}) (map[string]interface{}, bool) {
+	valMapNew := make(map[string]interface{})
+	foundfloat := false
+	if valMap, ok := paramMap.(map[string]interface{}); ok {
+		for paramName := range valMap {
+			var newBound []string
+			valToCheck := valMap[paramName]
+			switch val := valToCheck.(type) {
+			case int, float64, int32, float32, int8, int16, int64:
+				valToCheck = fmt.Sprintf("%v", val)
+				foundfloat = true
+				valMapNew[paramName] = valToCheck
+			}
+			if arrayValue, ok := valToCheck.([]interface{}); ok {
+				newBound = make([]string, len(arrayValue))
+				for i := range arrayValue {
+					switch val := arrayValue[i].(type) {
+					case int, float64, int32, float32, int8, int16, int64:
+						newBound[i] = fmt.Sprintf("%v", val)
+						foundfloat = true
+					}
+				}
+				if foundfloat {
+					valMapNew[paramName] = newBound
+				}
+			}
+		}
+		return valMapNew, foundfloat
+	}
+	return valMapNew, foundfloat
+}
+
+// findKeyAndReplace key in interface (recursively) and return value as interface
+func findKeyAndReplace(obj interface{}, propValues map[string]interface{}) (interface{}, bool) {
+	// if the argument is not a map, ignore it
+	mobj, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+	for k, v := range mobj {
+		// key match, return value
+		if val, ok := propValues[k]; ok {
+			if valMap, ok := val.(map[string]interface{}); ok {
+				if val2, ok := valMap["Default"]; ok {
+					mobj[k] = val2
+				}
+				return v, true
+			}
+		}
+		// if the value is a map, search recursively
+		if m, ok := v.(map[string]interface{}); ok {
+			if res, ok := findKeyAndReplace(m, propValues); ok {
+				return res, true
+			}
+		}
+		// if the value is an array, search recursively
+		if va, ok := v.([]interface{}); ok {
+			for _, a := range va {
+				if res, ok := findKeyAndReplace(a, propValues); ok {
+					return res, true
+				}
+			}
+		}
+	}
+	return nil, false
+}
+
+// ReadYAMLFileIntoJSON converts the given file into JSON string
+func (a *CFTV1) ReadYAMLFileIntoJSON(fileName string) ([]byte, error) {
+	templateSample, err := a.File(fileName)
+	if err != nil {
+		return nil, err
+	}
+	gostruct, err := templateSample.Map()
+	if err != nil {
+		zap.S().Errorf("failed to map yaml to json. error : %s in file %s", err.Error(), fileName)
+		return nil, err
+	}
+	jsonData, err := json.Marshal(gostruct)
+	if err != nil {
+		zap.S().Errorf("failed to convert yaml to json. error : %s", err.Error())
+		return nil, err
+	}
+	return jsonData, nil
+}
+func (a *CFTV1) getMapOfResourceIds(allData interface{}) map[string]string {
+	mapOfresourceIds := make(map[string]string)
+	mapOfParameters := make(map[string]interface{})
+	if templateFileMap, ok := allData.(map[string]interface{}); ok {
+		r, ok := templateFileMap[PARAMETERS]
+		if ok {
+			rMap, ok := r.(map[string]interface{})
+			if ok {
+				for rName, val := range rMap {
+					zap.S().Debug("inspecting resource", zap.String("Parameters Name", rName))
+					if val1, ok := val.(map[string]interface{}); ok {
+						mapOfParameters[rName] = val1["Default"]
+					}
+				}
+			}
+		}
+	}
+
+	if templateFileMap, ok := allData.(map[string]interface{}); ok {
+		r, ok := templateFileMap[RESOURCES]
+		if ok {
+			rMap, ok := r.(map[string]interface{})
+			if ok {
+				for rName := range rMap {
+					zap.S().Debug("inspecting resource", zap.String("Resource Name", rName))
+					if _, ok := mapOfParameters[rName]; !ok {
+						mapOfresourceIds[rName] = rName
+					}
+				}
+			}
+		}
+	}
+	return mapOfresourceIds
+}
+
+// resolveResourceIDs resolves the indirect resource to resource references
+func (a *CFTV1) resolveResourceIDs(jsonData []byte) ([]byte, error) {
+	var unmarshalled interface{}
+	if err := json.Unmarshal(jsonData, &unmarshalled); err != nil {
+		return nil, fmt.Errorf("invalid JSON: %s", err)
+	}
+	mapOfparentReferences := a.getMapOfResourceIds(unmarshalled)
+	unmarshalledResult := a.resolveIndirectReferences(nil, unmarshalled, "", mapOfparentReferences)
+	resultBytes, err := json.Marshal(unmarshalledResult)
+	if err != nil {
+		return nil, fmt.Errorf("invalid JSON: %s", err)
+	}
+	jsonData = resultBytes
+	return jsonData, nil
+}
+
+// resolveIndirectReferences finds if the references are of the Name of the resource and replace it with actual Name
+func (a *CFTV1) resolveIndirectReferences(parent interface{}, input interface{}, parentKey string, mapOfReferences map[string]string) interface{} {
+
+	switch value := input.(type) {
+
+	case map[string]interface{}:
+		processed := map[string]interface{}{}
+		for key, val := range value {
+			if key == "Ref" && parentKey != "" {
+				valuStr := fmt.Sprintf("%v", val)
+				if _, ok := mapOfReferences[valuStr]; ok {
+					if parentVal, ok := parent.(map[string]interface{}); ok {
+						parentVal[parentKey] = valuStr
+						val = valuStr
+						return val
+					}
+				}
+			}
+			processed[key] = a.resolveIndirectReferences(value, val, key, mapOfReferences)
+		}
+		return processed
+
+	case []interface{}:
+
+		// We found an array in the JSON - recurse through it's elements looking for intrinsic functions
+		processed := []interface{}{}
+		for _, val := range value {
+			processed = append(processed, a.resolveIndirectReferences(parent, val, parentKey, mapOfReferences))
+		}
+		return processed
+
+	case nil:
+		return value
+	case bool:
+		return value
+	case float64:
+		return value
+	case string:
+		return value
+	default:
+		return nil
+
+	}
 }

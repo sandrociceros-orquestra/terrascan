@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/sns"
+	"github.com/awslabs/goformation/v7/cloudformation/sns"
 )
 
 // SnsTopicPolicyConfig holds config for SnsTopicPolicy
@@ -30,6 +30,7 @@ type SnsTopicPolicyConfig struct {
 }
 
 // GetSnsTopicPolicyConfig returns config for SnsTopicPolicy
+// aws_sns_topic_policy
 func GetSnsTopicPolicyConfig(p *sns.TopicPolicy) []AWSResourceConfig {
 	policyDoc, _ := json.Marshal(p.PolicyDocument)
 

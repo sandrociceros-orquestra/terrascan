@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/awslabs/goformation/v5/cloudformation/iam"
+	"github.com/awslabs/goformation/v7/cloudformation/iam"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
@@ -50,6 +51,7 @@ type IamUserConfig struct {
 }
 
 // GetIamUserConfig returns config for aws_iam_user, aws_iam_user_policy, aws_iam_user_login_profile
+// aws_iam_user_policy, aws_iam_user_login_profile
 func GetIamUserConfig(i *iam.User) []AWSResourceConfig {
 
 	resourceConfigs := make([]AWSResourceConfig, 0)
@@ -59,24 +61,28 @@ func GetIamUserConfig(i *iam.User) []AWSResourceConfig {
 		Metadata: i.AWSCloudFormationMetadata,
 		Resource: IamUserConfig{
 			Config: Config{
-				Name: i.UserName,
-				Tags: i.Tags,
+				Name: functions.GetVal(i.UserName),
+				Tags: functions.PatchAWSTags(i.Tags),
 			},
-			UserName: i.UserName,
+			UserName: functions.GetVal(i.UserName),
 		},
 	})
+
+	iamLoginProfileConfig := IamUserLoginProfileConfig{
+		Config: Config{
+			Name: functions.GetVal(i.UserName),
+		},
+	}
+	if i.LoginProfile != nil {
+		iamLoginProfileConfig.PasswordResetRequired = functions.GetVal(i.LoginProfile.PasswordResetRequired)
+	}
 
 	// add aws_iam_user_login_profile
 	resourceConfigs = append(resourceConfigs, AWSResourceConfig{
 		Type:     IamUserLoginProfile,
-		Name:     i.UserName,
+		Name:     functions.GetVal(i.UserName),
 		Metadata: i.AWSCloudFormationMetadata,
-		Resource: IamUserLoginProfileConfig{
-			Config: Config{
-				Name: i.UserName,
-			},
-			PasswordResetRequired: i.LoginProfile.PasswordResetRequired,
-		},
+		Resource: iamLoginProfileConfig,
 	})
 
 	// add aws_iam_user_policy

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/elasticache"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticache"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // ElastiCacheClusterConfig holds config for aws_elasticache_cluster
@@ -29,15 +30,16 @@ type ElastiCacheClusterConfig struct {
 }
 
 // GetElastiCacheClusterConfig returns config for aws_elasticache_cluster
+// aws_elasticache_cluster
 func GetElastiCacheClusterConfig(e *elasticache.CacheCluster) []AWSResourceConfig {
 	cf := ElastiCacheClusterConfig{
 		Config: Config{
-			Tags: e.Tags,
-			Name: e.ClusterName,
+			Tags: functions.PatchAWSTags(e.Tags),
+			Name: functions.GetVal(e.ClusterName),
 		},
-		AZMode:        e.AZMode,
+		AZMode:        functions.GetVal(e.AZMode),
 		Engine:        e.Engine,
-		EngineVersion: e.EngineVersion,
+		EngineVersion: functions.GetVal(e.EngineVersion),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

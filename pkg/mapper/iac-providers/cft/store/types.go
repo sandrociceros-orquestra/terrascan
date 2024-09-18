@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -81,6 +81,7 @@ const (
 	AwsEcsTaskDefinition             = "aws_ecs_task_definition"
 	AwsS3Bucket                      = "aws_s3_bucket"
 	AwsS3BucketPublicAccessBlock     = "aws_s3_bucket_public_access_block"
+	AwsS3BucketServersideEncription  = "aws_s3_bucket_server_side_encryption_configuration"
 	AwsS3BucketPolicy                = "aws_s3_bucket_policy"
 	AwsSqsQueue                      = "aws_sqs_queue"
 	AwsSqsQueuePolicy                = "aws_sqs_queue_policy"
@@ -105,4 +106,11 @@ const (
 	AwsAppMeshMesh                   = "aws_appmesh_mesh"
 	AwsRAMResourceShare              = "aws_ram_resource_share"
 	AwsAppAutoscalingPolicy          = "aws_appautoscaling_policy"
+	AwsRouteTableAssociation         = "aws_route_table_association"
+	AwsRouteTable                    = "aws_route_table"
+	AwsNatGateway                    = "aws_nat_gateway"
+	AwsSubnet                        = "aws_subnet"
+	AwsRoute                         = "aws_route"
+	AwsSSMParameter                  = "aws_ssm_parameter"
+	AwsLb                            = "aws_lb"
 )

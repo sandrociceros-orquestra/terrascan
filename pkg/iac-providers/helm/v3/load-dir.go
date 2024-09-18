@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,15 +19,14 @@ package helmv3
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	k8sv1 "github.com/accurics/terrascan/pkg/iac-providers/kubernetes/v1"
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/results"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
+	k8sv1 "github.com/tenable/terrascan/pkg/iac-providers/kubernetes/v1"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/results"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/chart"
@@ -40,6 +39,8 @@ var (
 	errBadChartName    = fmt.Errorf("invalid chart name in Chart.yaml")
 	errBadChartVersion = fmt.Errorf("invalid chart version in Chart.yaml")
 )
+
+const valuesFiles = "valuesFiles"
 
 // LoadIacDir loads all helm charts under the specified directory
 func (h *HelmV3) LoadIacDir(absRootDir string, options map[string]interface{}) (output.AllResourceConfigs, error) {
@@ -55,7 +56,6 @@ func (h *HelmV3) LoadIacDir(absRootDir string, options map[string]interface{}) (
 
 	if len(fileMap) == 0 {
 		errMsg := fmt.Sprintf("no helm charts found in directory %s", absRootDir)
-		zap.S().Debug(zap.String("root dir", absRootDir), zap.Error(err))
 		return allResourcesConfig, multierror.Append(h.errIacLoadDirs, results.DirScanErr{IacType: "helm", Directory: absRootDir, ErrMessage: errMsg})
 	}
 
@@ -69,7 +69,7 @@ func (h *HelmV3) LoadIacDir(absRootDir string, options map[string]interface{}) (
 		// load helm charts into a map of IaC documents
 		var iacDocuments []*utils.IacDocument
 		var chartMap helmChartData
-		iacDocuments, chartMap, err = h.loadChart(chartPath)
+		iacDocuments, chartMap, err = h.loadChart(chartPath, options)
 		if err != nil && err != errSkipTestDir {
 			errMsg := fmt.Sprintf("error occurred while loading chart. err: %v", err)
 			logger.Debug("error occurred while loading chart", zap.Error(err))
@@ -171,7 +171,7 @@ func (h *HelmV3) renderChart(chartPath string, chartMap helmChartData, templateD
 	chartFiles := make([]*chart.File, 0)
 	for _, templateFile := range templateFiles {
 		var fileData []byte
-		fileData, err := ioutil.ReadFile(filepath.Join(templateDir, *templateFile))
+		fileData, err := os.ReadFile(filepath.Join(templateDir, *templateFile))
 		if err != nil {
 			logger.Debug("error while reading template file", zap.String("file", *templateFile), zap.Error(err))
 			return iacDocuments, err
@@ -241,13 +241,14 @@ func (h *HelmV3) renderChart(chartPath string, chartMap helmChartData, templateD
 }
 
 // loadChart renders and loads all templates within a chart path
-func (h *HelmV3) loadChart(chartPath string) ([]*utils.IacDocument, helmChartData, error) {
+func (h *HelmV3) loadChart(chartPath string, options map[string]interface{}) ([]*utils.IacDocument, helmChartData, error) {
 	iacDocuments := make([]*utils.IacDocument, 0)
 	chartMap := make(helmChartData)
 	logger := zap.S().With("chart path", chartPath)
 
+	chartDir := filepath.Dir(chartPath)
 	// load the chart file and values file from the specified chart path
-	chartFileBytes, err := ioutil.ReadFile(chartPath)
+	chartFileBytes, err := os.ReadFile(chartPath)
 	if err != nil {
 		logger.Debug("unable to read", zap.Error(err))
 		return iacDocuments, chartMap, err
@@ -258,32 +259,63 @@ func (h *HelmV3) loadChart(chartPath string) ([]*utils.IacDocument, helmChartDat
 		return iacDocuments, chartMap, err
 	}
 
-	var fileInfo os.FileInfo
+	valuesFilePaths := []string{}
+	// check if custom values files are given as options
+	if valuesFiles, ok := options[valuesFiles]; ok {
+		valuesFilePaths = valuesFiles.([]string)
+		logger.Debug("found user defined values.yaml files list", zap.Any("values", valuesFilePaths))
+	}
+	if len(valuesFilePaths) == 0 { // if no values-files list provided then use default values.yaml file
+		valuesFilePaths = []string{helmValuesFilename}
+		logger.Debug("defaulting to values.yaml file present in the current directory", zap.Any("values", valuesFilePaths))
+	}
+
+	allValuesFiles := make([]map[interface{}]interface{}, 0)
+
+	for _, valuesFile := range valuesFilePaths {
+		valuesFilePath := filepath.Join(chartDir, valuesFile)
+		valuesMap, err := h.readFileIntoInterface(valuesFilePath)
+		if err != nil {
+			return iacDocuments, chartMap, err
+		}
+		allValuesFiles = append(allValuesFiles, valuesMap)
+	}
+
+	if len(allValuesFiles) > 0 {
+		resultValueMap := allValuesFiles[0]
+		for i := 1; i < len(valuesFilePaths); i++ {
+			resultValueMap = utils.MergeMaps(resultValueMap, allValuesFiles[i])
+		}
+
+		outValuesBytes, err := yaml.Marshal(resultValueMap)
+		if err != nil {
+			logger.Debug("unable to marshal merged values.yaml", zap.Error(err))
+			return iacDocuments, chartMap, err
+		}
+		var valueMap map[string]interface{}
+		// UnMarshal back to map[string]interface{}
+		if err = yaml.Unmarshal(outValuesBytes, &valueMap); err != nil {
+			logger.Debug("unable to unmarshal values.yaml", zap.Error(err))
+			return iacDocuments, chartMap, err
+		}
+		iacDocuments, chartMap, err = h.getIACDocumentsWithValues(chartPath, chartMap, valueMap)
+		if err != nil {
+			logger.Warn("error rendering chart with merged values file", zap.Error(err))
+			return iacDocuments, chartMap, err
+		}
+	}
+	return iacDocuments, chartMap, nil
+}
+
+// getIACDocumentsWithValues returns iacDocument given chart path and values map
+func (h *HelmV3) getIACDocumentsWithValues(chartPath string, chartMap helmChartData, valueMap map[string]interface{}) ([]*utils.IacDocument, helmChartData, error) {
+	iacDocuments := make([]*utils.IacDocument, 0)
+	logger := zap.S().With("chart path", chartPath)
+
 	chartDir := filepath.Dir(chartPath)
-	valuesFile := filepath.Join(chartDir, helmValuesFilename)
-	fileInfo, err = os.Stat(valuesFile)
-	if err != nil {
-		logger.Debug("unable to stat values.yaml", zap.Error(err))
-		return iacDocuments, chartMap, err
-	}
-
-	logger.With("file name", fileInfo.Name())
-	var valueFileBytes []byte
-	valueFileBytes, err = ioutil.ReadFile(valuesFile)
-	if err != nil {
-		logger.Debug("unable to read values.yaml", zap.Error(err))
-		return iacDocuments, chartMap, err
-	}
-
-	var valueMap map[string]interface{}
-	if err = yaml.Unmarshal(valueFileBytes, &valueMap); err != nil {
-		logger.Debug("unable to unmarshal values.yaml", zap.Error(err))
-		return iacDocuments, chartMap, err
-	}
-
 	// for each template file found, render and save an iacDocument
 	var templateFileMap map[string][]*string
-	templateFileMap, err = utils.FindFilesBySuffix(filepath.Join(chartDir, helmTemplateDir), h.getHelmTemplateExtensions())
+	templateFileMap, err := utils.FindFilesBySuffix(filepath.Join(chartDir, helmTemplateDir), h.getHelmTemplateExtensions())
 	if err != nil {
 		logger.Warn("error while calling FindFilesBySuffix", zap.Error(err))
 		return iacDocuments, chartMap, err
@@ -308,4 +340,35 @@ func (h *HelmV3) getHelmTemplateExtensions() []string {
 // getHelmChartFilenames returns valid chart filenames
 func (h *HelmV3) getHelmChartFilenames() []string {
 	return []string{"Chart.yaml"}
+}
+
+// Name returns name of the provider
+func (h *HelmV3) Name() string {
+	return "helm"
+}
+
+// readFileIntoInterface reads and converts file into interface
+func (h *HelmV3) readFileIntoInterface(valuesFile string) (map[interface{}]interface{}, error) {
+	logger := zap.S().With("readFileIntoInterface", valuesFile)
+	fileInfo, err := os.Stat(valuesFile)
+	if err != nil {
+		logger.Debug("unable to stat values.yaml", zap.Error(err))
+		return nil, err
+	}
+
+	logger.With("file name", fileInfo.Name())
+	var valueFileBytes []byte
+	valueFileBytes, err = os.ReadFile(valuesFile)
+	if err != nil {
+		logger.Debug("unable to read values.yaml", zap.Error(err))
+		return nil, err
+	}
+
+	var valueMap map[interface{}]interface{}
+	if err = yaml.Unmarshal(valueFileBytes, &valueMap); err != nil {
+		logger.Debug("unable to unmarshal values.yaml", zap.Error(err))
+		return nil, err
+	}
+
+	return valueMap, nil
 }

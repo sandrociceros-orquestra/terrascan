@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,12 +19,13 @@ package config
 import (
 	"fmt"
 
-	"github.com/awslabs/goformation/v5/cloudformation/apigateway"
+	"github.com/awslabs/goformation/v7/cloudformation/apigateway"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
-	// GatewayMethodSettings represents subresource aws_api_gateway_method_settings for MethodSettings attribute
-	GatewayMethodSettings = "MethodSettings"
+	// GatewayMethodSetting represents subresource aws_api_gateway_method_settings for MethodSettings attribute
+	GatewayMethodSetting = "MethodSetting"
 )
 
 // MethodSettingConfig holds config for aws_api_gateway_method_settings
@@ -41,31 +42,33 @@ type Settings struct {
 // APIGatewayStageConfig holds config for aws_api_gateway_stage
 type APIGatewayStageConfig struct {
 	AccessLogSettings   interface{} `json:"access_log_settings"`
-	ClientCertificateID interface{} `json:"client_certificate_id"`
+	ClientCertificateID string      `json:"client_certificate_id"`
+	RestAPIID           string      `json:"rest_api_id"`
 	Config
 	XrayTracingEnabled bool `json:"xray_tracing_enabled"`
 }
 
 // GetAPIGatewayStageConfig returns config for aws_api_gateway_stage and aws_api_gateway_method_settings
+// aws_api_gateway_method_settings
 func GetAPIGatewayStageConfig(s *apigateway.Stage) []AWSResourceConfig {
 
 	resourceConfigs := make([]AWSResourceConfig, 0)
 
 	cf := APIGatewayStageConfig{
 		Config: Config{
-			Name: s.StageName,
-			Tags: s.Tags,
+			Name: functions.GetVal(s.StageName),
+			Tags: functions.PatchAWSTags(s.Tags),
 		},
 	}
+	cf.RestAPIID = s.RestApiId
+
 	if s.AccessLogSetting != nil {
 		cf.AccessLogSettings = s.AccessLogSetting
 	} else {
 		cf.AccessLogSettings = struct{}{}
 	}
-	cf.XrayTracingEnabled = s.TracingEnabled
-	if len(s.ClientCertificateId) > 0 {
-		cf.ClientCertificateID = s.ClientCertificateId
-	}
+	cf.XrayTracingEnabled = functions.GetVal(s.TracingEnabled)
+	cf.ClientCertificateID = functions.GetVal(s.ClientCertificateId)
 
 	// add aws_api_gateway_stage
 	resourceConfigs = append(resourceConfigs, AWSResourceConfig{
@@ -79,17 +82,17 @@ func GetAPIGatewayStageConfig(s *apigateway.Stage) []AWSResourceConfig {
 		for i, settings := range s.MethodSettings {
 			msc := MethodSettingConfig{
 				Config: Config{
-					Name: s.StageName,
-					Tags: s.Tags,
+					Name: functions.GetVal(s.StageName),
+					Tags: functions.PatchAWSTags(s.Tags),
 				},
 				MethodSettings: []Settings{{
-					MetricsEnabled: settings.MetricsEnabled,
+					MetricsEnabled: functions.GetVal(settings.MetricsEnabled),
 				}},
 			}
 			resourceConfigs = append(resourceConfigs, AWSResourceConfig{
-				Type: GatewayMethodSettings,
-				// Unique name for each method setting used fopr ID
-				Name:     fmt.Sprintf("%s%v", s.StageName, i),
+				Type: GatewayMethodSetting,
+				// Unique name for each method setting used for ID
+				Name:     fmt.Sprintf("%s%v", functions.GetVal(s.StageName), i),
 				Resource: msc,
 				Metadata: s.AWSCloudFormationMetadata,
 			})

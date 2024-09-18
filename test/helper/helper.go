@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,12 +31,12 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/accurics/terrascan/pkg/policy"
-	"github.com/accurics/terrascan/pkg/results"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tenable/terrascan/pkg/policy"
+	"github.com/tenable/terrascan/pkg/results"
+	"github.com/tenable/terrascan/pkg/utils"
 	"gopkg.in/yaml.v3"
 )
 
@@ -90,6 +89,9 @@ var (
 
 	// sourceRegexPattern is regex for 'file/folder' attribute in violations output
 	sourceRegexPattern = regexp.MustCompile(`["]*source["]*[ \t]*[:][ \t]*["]*(.+)[\\\/](.+)["]*`)
+
+	// version is regex for 'version' attribute in violations output
+	versionRegexPattern = regexp.MustCompile(`["version":]*"[0-9][\.]([0-9])+[\.]([0-9])+"`)
 )
 
 // ValidateExitCode validates the exit code of a gexec.Session
@@ -124,7 +126,7 @@ func CompareActualWithGoldenConfigOnlyRegex(session *gexec.Session, goldenFileAb
 // CompareActualWithGoldenSummaryRegex compares actual string with contents of golden file passed as parameter
 // ignores specified regex patterns from the actual and golden text
 func CompareActualWithGoldenSummaryRegex(session *gexec.Session, goldenFileAbsPath string, isJunitXML, isStdOut bool) {
-	fileData, err := ioutil.ReadFile(goldenFileAbsPath)
+	fileData, err := os.ReadFile(goldenFileAbsPath)
 	if utils.IsWindowsPlatform() {
 		fileData = utils.ReplaceWinNewLineBytes(fileData)
 	}
@@ -292,7 +294,7 @@ func getSession(cmd *exec.Cmd, outWriter, errWriter io.Writer) *gexec.Session {
 
 // GetByteData is a helper function to get data in byte slice from session and golden file
 func GetByteData(session *gexec.Session, goldenFileAbsPath string, isStdOut bool) ([]byte, []byte) {
-	fileBytes, err := ioutil.ReadFile(goldenFileAbsPath)
+	fileBytes, err := os.ReadFile(goldenFileAbsPath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	var sessionBytes []byte
 
@@ -322,7 +324,7 @@ func CompareSummaryAndViolations(sessionEngineOutput, fileDataEngineOutput polic
 		-eg: file/folder, scannedAt, file
 		-These attributes needs to be removed from the actual and golden output before comparing
 		-Also, the violations are not in order, they need to be sorted from both actual and golden output,
-		 before the comparision is made. Below are the steps:
+		 before the comparison is made. Below are the steps:
 
 		1. sort actual and golden violations and remove "file" attribute
 		2. sort actual and golden skipped violations and remove "file" attribute
@@ -334,8 +336,8 @@ func CompareSummaryAndViolations(sessionEngineOutput, fileDataEngineOutput polic
 	// 1. sort actual and golden violations and remove "file" attribute
 	sort.Sort(actualViolations)
 	sort.Sort(expectedViolations)
-	removeFileAndRoothFromViolations(actualViolations)
-	removeFileAndRoothFromViolations(expectedViolations)
+	removeFileAndRootFromViolations(actualViolations)
+	removeFileAndRootFromViolations(expectedViolations)
 
 	actualSkippedViolations = sessionEngineOutput.ViolationStore.SkippedViolations
 	expectedSkippedViolations = fileDataEngineOutput.ViolationStore.SkippedViolations
@@ -343,8 +345,8 @@ func CompareSummaryAndViolations(sessionEngineOutput, fileDataEngineOutput polic
 	// 2. sort actual and golden skipped violations and remove "file" attribute
 	sort.Sort(actualSkippedViolations)
 	sort.Sort(expectedSkippedViolations)
-	removeFileAndRoothFromViolations(actualSkippedViolations)
-	removeFileAndRoothFromViolations(expectedSkippedViolations)
+	removeFileAndRootFromViolations(actualSkippedViolations)
+	removeFileAndRootFromViolations(expectedSkippedViolations)
 
 	actualPassedRules = sessionEngineOutput.ViolationStore.PassedRules
 	expectedPassedRules = fileDataEngineOutput.ViolationStore.PassedRules
@@ -374,8 +376,8 @@ func removeTimestampAndResourcePath(summary *results.ScanSummary) {
 	summary.ResourcePath = ""
 }
 
-// removeFileAndRoothFromViolations is helper func to make file in violations blank
-func removeFileAndRoothFromViolations(v violations) {
+// removeFileAndRootFromViolations is helper func to make file in violations blank
+func removeFileAndRootFromViolations(v violations) {
 	vs := []*results.Violation(v)
 
 	for _, violation := range vs {
@@ -403,7 +405,7 @@ func GetAbsoluteFilePathForSarif(resourcePath, filePath string) (string, error) 
 // CompareActualSarifOutputWithGoldenSummaryRegex compares actual string with contents of golden file passed as parameter
 // ignores specified regex patterns from the actual and golden text
 func CompareActualSarifOutputWithGoldenSummaryRegex(session *gexec.Session, goldenFileAbsPath string) {
-	fileData, err := ioutil.ReadFile(goldenFileAbsPath)
+	fileData, err := os.ReadFile(goldenFileAbsPath)
 	if utils.IsWindowsPlatform() {
 		fileData = utils.ReplaceWinNewLineBytes(fileData)
 	}
@@ -424,10 +426,13 @@ func CompareActualSarifOutputWithGoldenSummaryRegex(session *gexec.Session, gold
 	sessionOutput = sarifVersionPattern.ReplaceAllString(sessionOutput, "")
 	fileContents = sarifVersionPattern.ReplaceAllString(fileContents, "")
 
+	sessionOutput = versionRegexPattern.ReplaceAllString(sessionOutput, "")
+	fileContents = versionRegexPattern.ReplaceAllString(fileContents, "")
+
 	gomega.Expect(sessionOutput).Should(gomega.BeIdenticalTo(fileContents))
 }
 
-// CheckSummaryForVulnerabilities is a helper function to check vulnerabilies exists
+// CheckSummaryForVulnerabilities is a helper function to check vulnerabilities exists
 func CheckSummaryForVulnerabilities(session *gexec.Session, expectedCount int) {
 	var sessionBytes []byte
 

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/ec2"
+	"github.com/awslabs/goformation/v7/cloudformation/ec2"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // IngressEgress holds config for SecurityGroupEgress, SecurityGroupIngress attributes of SecurityGroupConfig
@@ -40,40 +41,27 @@ type SecurityGroupConfig struct {
 }
 
 // GetSecurityGroupConfig returns config for aws_security_group
+// aws_security_group
 func GetSecurityGroupConfig(s *ec2.SecurityGroup) []AWSResourceConfig {
 	cf := SecurityGroupConfig{
 		Config: Config{
-			Name: s.GroupName,
-			Tags: s.Tags,
+			Name: functions.GetVal(s.GroupName),
+			Tags: functions.PatchAWSTags(s.Tags),
 		},
-		GroupName:        s.GroupName,
+		GroupName:        functions.GetVal(s.GroupName),
 		GroupDescription: s.GroupDescription,
 	}
 
 	ingresses := make([]IngressEgress, 0)
 	for _, i := range s.SecurityGroupIngress {
-		ingress := IngressEgress{
-			IPProtocol:  i.IpProtocol,
-			Description: i.Description,
-			CidrIP:      []string{i.CidrIp},
-			CidrIpv6:    []string{i.CidrIpv6},
-			FromPort:    i.FromPort,
-			ToPort:      i.ToPort,
-		}
+		ingress := getIngressEgress(i)
 		ingresses = append(ingresses, ingress)
 	}
 	cf.SecurityGroupIngress = ingresses
 
 	egresses := make([]IngressEgress, 0)
 	for _, e := range s.SecurityGroupEgress {
-		egress := IngressEgress{
-			IPProtocol:  e.IpProtocol,
-			Description: e.Description,
-			CidrIP:      []string{e.CidrIp},
-			CidrIpv6:    []string{e.CidrIpv6},
-			FromPort:    e.FromPort,
-			ToPort:      e.ToPort,
-		}
+		egress := getIngressEgress(e)
 		egresses = append(egresses, egress)
 	}
 	cf.SecurityGroupEgress = egresses
@@ -82,4 +70,44 @@ func GetSecurityGroupConfig(s *ec2.SecurityGroup) []AWSResourceConfig {
 		Resource: cf,
 		Metadata: s.AWSCloudFormationMetadata,
 	}}
+}
+
+func getIngressEgress(ie any) IngressEgress {
+	if egress, ok := ie.(*ec2.SecurityGroup_Egress); ok {
+		return getEgress(egress)
+	}
+	if egress, ok := ie.(ec2.SecurityGroup_Egress); ok {
+		return getEgress(&egress)
+	}
+
+	if ingress, ok := ie.(*ec2.SecurityGroup_Ingress); ok {
+		return getIngress(ingress)
+	}
+
+	if ingress, ok := ie.(ec2.SecurityGroup_Ingress); ok {
+		return getIngress(&ingress)
+	}
+	return IngressEgress{}
+}
+
+func getEgress(egress *ec2.SecurityGroup_Egress) IngressEgress {
+	return IngressEgress{
+		IPProtocol:  egress.IpProtocol,
+		Description: functions.GetVal(egress.Description),
+		CidrIP:      []string{functions.GetVal(egress.CidrIp)},
+		CidrIpv6:    []string{functions.GetVal(egress.CidrIpv6)},
+		FromPort:    functions.GetVal(egress.FromPort),
+		ToPort:      functions.GetVal(egress.ToPort),
+	}
+}
+
+func getIngress(egress *ec2.SecurityGroup_Ingress) IngressEgress {
+	return IngressEgress{
+		IPProtocol:  egress.IpProtocol,
+		Description: functions.GetVal(egress.Description),
+		CidrIP:      []string{functions.GetVal(egress.CidrIp)},
+		CidrIpv6:    []string{functions.GetVal(egress.CidrIpv6)},
+		FromPort:    functions.GetVal(egress.FromPort),
+		ToPort:      functions.GetVal(egress.ToPort),
+	}
 }

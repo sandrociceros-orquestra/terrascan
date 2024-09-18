@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -30,12 +29,12 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/policy"
-	"github.com/accurics/terrascan/pkg/results"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/policy"
+	"github.com/tenable/terrascan/pkg/results"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -57,7 +56,7 @@ func NewEngine() (*Engine, error) {
 // LoadRegoMetadata Loads rego metadata from a given file
 func (e *Engine) LoadRegoMetadata(metaFilename string) (*policy.RegoMetadata, error) {
 	// Load metadata file if it exists
-	metadata, err := ioutil.ReadFile(metaFilename)
+	metadata, err := os.ReadFile(metaFilename)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			zap.S().Error("failed to load rego metadata", zap.String("file", metaFilename), zap.Error(err))
@@ -78,7 +77,7 @@ func (e *Engine) LoadRegoMetadata(metaFilename string) (*policy.RegoMetadata, er
 func (e *Engine) loadRawRegoFilesIntoMap(currentDir string, regoDataList []*policy.RegoData, regoFileMap *map[string][]byte) error {
 	for i := range regoDataList {
 		regoPath := filepath.Join(currentDir, regoDataList[i].Metadata.File)
-		rawRegoData, err := ioutil.ReadFile(regoPath)
+		rawRegoData, err := os.ReadFile(regoPath)
 		if err != nil {
 			zap.S().Error("failed to load rego file", zap.String("file", regoPath), zap.Error(err))
 			continue
@@ -118,8 +117,8 @@ func (e *Engine) LoadRegoFiles(policyPath string, filter policy.PreLoadFilter) e
 	sort.Strings(dirList)
 	for i := range dirList {
 		// Find all files in the current dir
-		var fileInfo []os.FileInfo
-		fileInfo, err = ioutil.ReadDir(dirList[i])
+		var dirEntries []os.DirEntry
+		dirEntries, err = os.ReadDir(dirList[i])
 		if err != nil {
 			if !errors.Is(err, os.ErrNotExist) {
 				zap.S().Debug("error while searching for files", zap.String("dir", dirList[i]))
@@ -128,7 +127,7 @@ func (e *Engine) LoadRegoFiles(policyPath string, filter policy.PreLoadFilter) e
 		}
 
 		// Load the rego metadata first (*.json)
-		metadataFiles := utils.FilterFileInfoBySuffix(&fileInfo, []string{RegoMetadataFileSuffix})
+		metadataFiles := utils.FilterFileInfoBySuffix(&dirEntries, []string{RegoMetadataFileSuffix})
 		if len(metadataFiles) == 0 {
 			zap.S().Debug("no metadata files were found", zap.String("dir", dirList[i]))
 			continue

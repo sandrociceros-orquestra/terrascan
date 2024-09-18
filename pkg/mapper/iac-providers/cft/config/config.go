@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ type Config struct {
 	Name string      `json:"name"`
 }
 
-// AWSResourceConfig helps define type and name for sub-resources if nedded
+// AWSResourceConfig helps define type and name for sub-resources if needed
 type AWSResourceConfig struct {
 	Resource interface{}
 	Metadata map[string]interface{}

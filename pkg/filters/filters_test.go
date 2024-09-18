@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,9 +19,9 @@ package filters
 import (
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/policy"
-	"github.com/accurics/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/policy"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 func TestRegoMetadataPreLoadFilterIsFiltered(t *testing.T) {
@@ -112,7 +112,7 @@ func TestRegoMetadataPreLoadFilterIsAllowed(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "only scan rules specified, regometadata referecen id doesn't match",
+			name: "only scan rules specified, regometadata reference id doesn't match",
 			fields: fields{
 				scanRules: []string{testRuleID},
 			},
@@ -124,7 +124,7 @@ func TestRegoMetadataPreLoadFilterIsAllowed(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "only scan rules specified, regometadata referecen id matches one of the scan rule id",
+			name: "only scan rules specified, regometadata reference id matches one of the scan rule id",
 			fields: fields{
 				scanRules: []string{testRuleID},
 			},

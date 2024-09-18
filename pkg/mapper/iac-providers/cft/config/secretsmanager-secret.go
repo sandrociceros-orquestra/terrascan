@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/secretsmanager"
+	"github.com/awslabs/goformation/v7/cloudformation/secretsmanager"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // SecretsManagerSecretConfig holds config for aws_secretsmanager_secret
@@ -27,13 +28,14 @@ type SecretsManagerSecretConfig struct {
 }
 
 // GetSecretsManagerSecretConfig returns config for aws_secretsmanager_secret
+// aws_secretsmanager_secret
 func GetSecretsManagerSecretConfig(s *secretsmanager.Secret) []AWSResourceConfig {
 	cf := SecretsManagerSecretConfig{
 		Config: Config{
-			Tags: s.Tags,
-			Name: s.Name,
+			Tags: functions.PatchAWSTags(s.Tags),
+			Name: functions.GetVal(s.Name),
 		},
-		KmsKeyID: s.KmsKeyId,
+		KmsKeyID: functions.GetVal(s.KmsKeyId),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

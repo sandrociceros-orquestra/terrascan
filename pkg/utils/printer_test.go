@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package utils
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	validJSON, _ = ioutil.ReadFile(validJSONFile)
+	validJSON, _ = os.ReadFile(validJSONFile)
 
 }
 

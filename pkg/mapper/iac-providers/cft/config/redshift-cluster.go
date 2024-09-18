@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/redshift"
+	"github.com/awslabs/goformation/v7/cloudformation/redshift"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // RedshiftClusterConfig holds config for aws_redshift_cluster
@@ -30,15 +31,16 @@ type RedshiftClusterConfig struct {
 }
 
 // GetRedshiftClusterConfig returns config for aws_redshift_cluster
+// aws_redshift_cluster
 func GetRedshiftClusterConfig(c *redshift.Cluster) []AWSResourceConfig {
 	cf := RedshiftClusterConfig{
 		Config: Config{
 			Name: c.DBName,
-			Tags: c.Tags,
+			Tags: functions.PatchAWSTags(c.Tags),
 		},
-		KmsKeyID:           c.KmsKeyId,
-		Encrypted:          c.Encrypted,
-		PubliclyAccessible: c.PubliclyAccessible,
+		KmsKeyID:           functions.GetVal(c.KmsKeyId),
+		Encrypted:          functions.GetVal(c.Encrypted),
+		PubliclyAccessible: functions.GetVal(c.PubliclyAccessible),
 	}
 	if c.LoggingProperties != nil {
 		// if LoggingProperties are mentioned in cft,

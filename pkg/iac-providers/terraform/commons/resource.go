@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package commons
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hclConfigs "github.com/hashicorp/terraform/configs"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -31,9 +31,9 @@ import (
 func CreateResourceConfig(managedResource *hclConfigs.Resource) (resourceConfig output.ResourceConfig, err error) {
 
 	// read source file
-	fileBytes, err := ioutil.ReadFile(managedResource.DeclRange.Filename)
+	fileBytes, err := os.ReadFile(managedResource.DeclRange.Filename)
 	if err != nil {
-		zap.S().Errorf("failed to read terrafrom IaC file '%s'. error: '%v'", managedResource.DeclRange.Filename, err)
+		zap.S().Errorf("failed to read terraform IaC file '%s'. error: '%v'", managedResource.DeclRange.Filename, err)
 		return resourceConfig, fmt.Errorf("failed to read terraform file")
 	}
 
@@ -76,13 +76,13 @@ func CreateResourceConfig(managedResource *hclConfigs.Resource) (resourceConfig 
 	return resourceConfig, nil
 }
 
-//findContainers finds containers defined in resource
+// findContainers finds containers defined in resource
 func findContainers(managedResource *hclConfigs.Resource, jsonBody jsonObj, hclBody *hclsyntax.Body) (containers []output.ContainerDetails, initContainers []output.ContainerDetails) {
-	if isKuberneteResource(managedResource) {
+	if isKubernetesResource(managedResource) {
 		containers, initContainers = extractContainerImagesFromk8sResources(managedResource, hclBody)
-	} else if isAzureConatinerResource(managedResource) {
+	} else if isAzureContainerResource(managedResource) {
 		containers = fetchContainersFromAzureResource(jsonBody)
-	} else if isAwsConatinerResource(managedResource) {
+	} else if isAwsContainerResource(managedResource) {
 		containers = fetchContainersFromAwsResource(jsonBody, hclBody, managedResource.DeclRange.Filename)
 	}
 	return

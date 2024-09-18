@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,24 +18,28 @@ package cftv1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/mapper"
-	cftRes "github.com/accurics/terrascan/pkg/mapper/iac-providers/cft/config"
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/cft/store"
-	"github.com/awslabs/goformation/v5"
-	"github.com/awslabs/goformation/v5/cloudformation"
+	"github.com/aws-cloudformation/rain/cft/parse"
+	"github.com/awslabs/goformation/v7"
+	"github.com/awslabs/goformation/v7/cloudformation"
+	multierr "github.com/hashicorp/go-multierror"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/mapper"
+	cftRes "github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/config"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/store"
+	"github.com/tenable/terrascan/pkg/results"
 	"go.uber.org/zap"
 )
 
 // LoadIacFile loads the specified CFT template file.
 // Note that a single CFT template json file may contain multiple resource definitions.
 func (a *CFTV1) LoadIacFile(absFilePath string, options map[string]interface{}) (allResourcesConfig output.AllResourceConfigs, err error) {
-	fileData, err := ioutil.ReadFile(absFilePath)
+	fileData, err := os.ReadFile(absFilePath)
 	if err != nil {
 		zap.S().Debug("unable to read file", zap.Error(err), zap.String("file", absFilePath))
 		return allResourcesConfig, fmt.Errorf("unable to read file %s", absFilePath)
@@ -48,12 +52,37 @@ func (a *CFTV1) LoadIacFile(absFilePath string, options map[string]interface{}) 
 		return allResourcesConfig, err
 	}
 
+	template, err := parse.File(absFilePath)
+	if err != nil {
+		zap.S().Debug("unable to parse template for getting line numbers of resources", zap.Error(err), zap.String("file", absFilePath))
+	}
+
 	// fill AllResourceConfigs
 	allResourcesConfig = make(map[string][]output.ResourceConfig)
 	var config *output.ResourceConfig
 	for _, resource := range configs {
 		config = &resource
-		config.Line = 1
+
+		// Fetch line number
+		resNode, err := template.GetResource(resource.Name)
+		if err != nil {
+			zap.S().Debug("unable to get line number of resource", zap.Error(err), zap.String("file", absFilePath),
+				zap.String("resource", resource.Name))
+		}
+		if resNode != nil && resNode.Line > 1 {
+			config.Line = resNode.Line
+
+			// If yaml, adjust line number
+			// resNode.Line points to first line within the resource
+			extension := filepath.Ext(absFilePath)
+			if extension == ".yaml" || extension == ".yml" {
+				config.Line--
+			}
+		} else {
+			// default
+			config.Line = 1
+		}
+
 		if config.Source == "" {
 			config.Source = a.getSourceRelativePath(absFilePath)
 		}
@@ -90,38 +119,65 @@ func (a *CFTV1) getConfig(absFilePath string, fileData *[]byte, parameters *map[
 
 func (a *CFTV1) extractTemplate(file string, data *[]byte) (*cloudformation.Template, error) {
 	fileExt := a.getFileType(file, data)
+	var isYaml bool
 
 	switch fileExt {
 	case YAMLExtension, YAMLExtension2:
-		zap.S().Debug("sanitizing cft template file", zap.String("file", file))
-		sanitized, err := a.sanitizeCftTemplate(*data, true)
-		if err != nil {
-			zap.S().Debug("failed to sanitize cft template file", zap.String("file", file), zap.Error(err))
-			return nil, err
-		}
-		template, err := goformation.ParseYAML(sanitized)
-		if err != nil {
-			zap.S().Debug("failed to parse file", zap.String("file", file), zap.Error(err))
-			return nil, err
-		}
-		return template, nil
+		isYaml = true
 	case JSONExtension:
-		zap.S().Debug("sanitizing cft template file", zap.String("file", file))
-		sanitized, err := a.sanitizeCftTemplate(*data, false)
-		if err != nil {
-			zap.S().Debug("failed to sanitize cft template file", zap.String("file", file), zap.Error(err))
-			return nil, err
-		}
-		template, err := goformation.ParseJSON(sanitized)
-		if err != nil {
-			zap.S().Debug("failed to parse file", zap.String("file", file), zap.Error(err))
-			return nil, err
-		}
-		return template, nil
+		isYaml = false
 	default:
 		zap.S().Debug("unknown extension found", zap.String("extension", fileExt))
 		return nil, fmt.Errorf("unsupported extension for file %s", file)
 	}
+
+	zap.S().Debug("sanitizing cft template file", zap.String("file", file))
+	sanitized, err := a.sanitizeCftTemplate(file, *data, isYaml)
+	if err != nil {
+		zap.S().Debug("failed to sanitize cft template file", zap.String("file", file), zap.Error(err))
+		return nil, err
+	}
+
+	return a.cleanTemplate(sanitized, file)
+}
+
+func (a *CFTV1) cleanTemplate(templateMap map[string]interface{}, absFilePath string) (*cloudformation.Template, error) {
+	var onetemplate cloudformation.Template
+
+	resourceMap, ok := templateMap["Resources"].(map[string]interface{})
+	if !ok {
+		zap.S().Debug("failed to find valid Resources key", zap.String("file", absFilePath))
+		return nil, errors.New("failed to find valid Resources key in file: " + absFilePath)
+	}
+
+	onetemplate.Resources = make(cloudformation.Resources, len(resourceMap))
+
+	for resourceName := range resourceMap {
+		var resourceInfo cftResource
+
+		resourceInfo.Resources = make(map[string]interface{}, 1)
+		resourceInfo.Resources[resourceName] = resourceMap[resourceName]
+
+		resourceData, err := json.Marshal(resourceInfo)
+		if err != nil {
+			zap.S().Debug("failed to marshal json for resource", zap.String("resource", resourceName), zap.Error(err))
+			a.errIacLoadDirs = multierr.Append(a.errIacLoadDirs, results.DirScanErr{IacType: "cft", Directory: filepath.Dir(absFilePath), ErrMessage: err.Error()})
+			continue
+		}
+
+		template, err := goformation.ParseJSON(resourceData)
+		if err != nil {
+			zap.S().Debug("failed to generate template for resource", zap.String("resource", resourceName), zap.Error(err))
+			a.errIacLoadDirs = multierr.Append(a.errIacLoadDirs, results.DirScanErr{IacType: "cft", Directory: filepath.Dir(absFilePath), ErrMessage: err.Error()})
+			continue
+		}
+
+		for key := range template.Resources {
+			onetemplate.Resources[key] = template.Resources[key]
+		}
+	}
+
+	return &onetemplate, nil
 }
 
 func (a *CFTV1) translateResources(template *cloudformation.Template, absFilePath string) ([]output.ResourceConfig, error) {
@@ -163,7 +219,7 @@ func (*CFTV1) getFileType(file string, data *[]byte) string {
 		if isJSON(string(*data)) {
 			return JSONExtension
 		}
-		return YAMLExtension
+		return TXTExtension
 	}
 	return UnknownExtension
 }

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -84,7 +84,7 @@ type CVSS struct {
 	V3Score  float64 `json:"v3_score,omitempty" yaml:"v3_score,omitempty" xml:"v3_score,attr,omitempty"`
 }
 
-//Vulnerability will hold vulnerability details that will be displayed in scan summary
+// Vulnerability will hold vulnerability details that will be displayed in scan summary
 type Vulnerability struct {
 	Image            string `json:"image" yaml:"image"`
 	Container        string `json:"container,omitempty" yaml:"container,omitempty" xml:"container,attr"`

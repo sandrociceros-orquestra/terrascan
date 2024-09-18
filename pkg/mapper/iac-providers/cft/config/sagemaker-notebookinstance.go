@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/sagemaker"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/sagemaker"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // SagemakerNotebookInstanceConfig holds config for SagemakerNotebookInstance
 type SagemakerNotebookInstanceConfig struct {
@@ -30,18 +33,19 @@ type SagemakerNotebookInstanceConfig struct {
 }
 
 // GetSagemakerNotebookInstanceConfig returns config for SagemakerNotebookInstance
+// aws_sagemaker_notebook_instance
 func GetSagemakerNotebookInstanceConfig(n *sagemaker.NotebookInstance) []AWSResourceConfig {
 	cf := SagemakerNotebookInstanceConfig{
 		Config: Config{
-			Name: n.NotebookInstanceName,
-			Tags: n.Tags,
+			Name: functions.GetVal(n.NotebookInstanceName),
+			Tags: functions.PatchAWSTags(n.Tags),
 		},
-		Name:                 n.NotebookInstanceName,
+		Name:                 functions.GetVal(n.NotebookInstanceName),
 		RoleARN:              n.RoleArn,
 		InstanceType:         n.InstanceType,
-		KMSKeyID:             n.KmsKeyId,
-		DirectInternetAccess: n.DirectInternetAccess,
-		RootAccess:           n.RootAccess,
+		KMSKeyID:             functions.GetVal(n.KmsKeyId),
+		DirectInternetAccess: functions.GetVal(n.DirectInternetAccess),
+		RootAccess:           functions.GetVal(n.RootAccess),
 	}
 
 	return []AWSResourceConfig{{

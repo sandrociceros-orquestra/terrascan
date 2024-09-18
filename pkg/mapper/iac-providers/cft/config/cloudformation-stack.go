@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@
 package config
 
 import (
-	fn "github.com/accurics/terrascan/pkg/mapper/iac-providers/cft/functions"
-	"github.com/awslabs/goformation/v5/cloudformation/cloudformation"
+	"github.com/awslabs/goformation/v7/cloudformation/cloudformation"
+	fn "github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // CloudFormationStackConfig holds config for aws_cloudformation_stack
@@ -31,15 +31,16 @@ type CloudFormationStackConfig struct {
 }
 
 // GetCloudFormationStackConfig returns config for aws_cloudformation_stack
+// aws_cloudformation_stack
 func GetCloudFormationStackConfig(s *cloudformation.Stack) []AWSResourceConfig {
 	cf := CloudFormationStackConfig{
-		Config:           Config{Tags: s.Tags},
+		Config:           Config{Tags: fn.PatchAWSTags(s.Tags)},
 		TemplateURL:      "",
 		NotificationARNs: nil,
 		TemplateData:     []byte{},
 	}
 
-	if len(s.NotificationARNs) > 0 {
+	if s.NotificationARNs != nil {
 		cf.NotificationARNs = s.NotificationARNs
 	}
 
@@ -53,7 +54,7 @@ func GetCloudFormationStackConfig(s *cloudformation.Stack) []AWSResourceConfig {
 		}
 	}
 
-	// Add Parameters for propogation to the nested Stack
+	// Add Parameters for propagation to the nested Stack
 	if s.Parameters != nil {
 		cf.Parameters = s.Parameters
 	}

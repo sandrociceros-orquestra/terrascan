@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/iam"
+	"github.com/awslabs/goformation/v7/cloudformation/iam"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // IamAccessKeyConfig holds config for aws_iam_access_key
@@ -34,7 +35,7 @@ func GetIamAccessKeyConfig(r *iam.AccessKey) []AWSResourceConfig {
 			Name: r.UserName,
 		},
 		UserName: r.UserName,
-		Status:   r.Status,
+		Status:   functions.GetVal(r.Status),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

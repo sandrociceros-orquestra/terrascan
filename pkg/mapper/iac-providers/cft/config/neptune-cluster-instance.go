@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/neptune"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/neptune"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // NeptuneClusterInstanceConfig holds config for aws_neptune_cluster_instance resource
 type NeptuneClusterInstanceConfig struct {
@@ -31,18 +34,19 @@ type NeptuneClusterInstanceConfig struct {
 }
 
 // GetNeptuneClusterInstanceConfig returns config for aws_neptune_cluster_instance resource
+// aws_neptune_cluster_instance
 func GetNeptuneClusterInstanceConfig(n *neptune.DBInstance) []AWSResourceConfig {
 	cf := NeptuneClusterInstanceConfig{
 		Config: Config{
-			Tags: n.Tags,
+			Tags: functions.PatchAWSTags(n.Tags),
 		},
-		AutoMinorVersionUpgrade:    n.AutoMinorVersionUpgrade,
-		AvailabilityZone:           n.AvailabilityZone,
-		DBClusterIdentifier:        n.DBClusterIdentifier,
+		AutoMinorVersionUpgrade:    functions.GetVal(n.AutoMinorVersionUpgrade),
+		AvailabilityZone:           functions.GetVal(n.AvailabilityZone),
+		DBClusterIdentifier:        functions.GetVal(n.DBClusterIdentifier),
 		DBInstanceClass:            n.DBInstanceClass,
-		DBParameterGroupName:       n.DBParameterGroupName,
-		DBSubnetGroupName:          n.DBSubnetGroupName,
-		PreferredMaintenanceWindow: n.PreferredMaintenanceWindow,
+		DBParameterGroupName:       functions.GetVal(n.DBParameterGroupName),
+		DBSubnetGroupName:          functions.GetVal(n.DBSubnetGroupName),
+		PreferredMaintenanceWindow: functions.GetVal(n.PreferredMaintenanceWindow),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

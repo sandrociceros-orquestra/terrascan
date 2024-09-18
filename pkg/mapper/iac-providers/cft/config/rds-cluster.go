@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,25 +17,56 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/rds"
+	"github.com/awslabs/goformation/v7/cloudformation/rds"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
+
+// ScalingConfig holds Scalingconfig for aws_rds_cluster
+type ScalingConfig struct {
+	AutoPause             bool   `json:"auto_pause"`
+	MaxCapacity           int    `json:"max_capacity"`
+	MinCapacity           int    `json:"min_capacity"`
+	SecondsUntilAutoPause int    `json:"seconds_until_auto_pause"`
+	TimeOutAction         string `json:"timeout_Action"`
+}
 
 // RDSClusterConfig holds config for aws_rds_cluster
 type RDSClusterConfig struct {
 	Config
-	BackupRetentionPeriod int  `json:"backup_retention_period,omitempty"`
-	StorageEncrypted      bool `json:"storage_encrypted"`
+	BackupRetentionPeriod int           `json:"backup_retention_period,omitempty"`
+	StorageEncrypted      bool          `json:"storage_encrypted"`
+	ScalingConfiguration  ScalingConfig `json:"scaling_configuration"`
 }
 
 // GetRDSClusterConfig returns config for aws_rds_cluster
+// aws_rds_cluster
 func GetRDSClusterConfig(c *rds.DBCluster) []AWSResourceConfig {
+	var scalingConfigData ScalingConfig
+
+	if c.EngineMode != nil {
+		if *c.EngineMode == "serverless" && c.ScalingConfiguration != nil {
+			if c.ScalingConfiguration.MaxCapacity != nil {
+				scalingConfigData.MaxCapacity = *c.ScalingConfiguration.MaxCapacity
+			}
+			if c.ScalingConfiguration.MinCapacity != nil {
+				scalingConfigData.MinCapacity = *c.ScalingConfiguration.MinCapacity
+			}
+			if c.ScalingConfiguration.AutoPause != nil {
+				scalingConfigData.AutoPause = *c.ScalingConfiguration.AutoPause
+			}
+			if c.ScalingConfiguration.SecondsUntilAutoPause != nil {
+				scalingConfigData.SecondsUntilAutoPause = *c.ScalingConfiguration.SecondsUntilAutoPause
+			}
+		}
+	}
 	cf := RDSClusterConfig{
 		Config: Config{
-			Name: c.DatabaseName,
-			Tags: c.Tags,
+			Name: functions.GetVal(c.DatabaseName),
+			Tags: functions.PatchAWSTags(c.Tags),
 		},
-		BackupRetentionPeriod: c.BackupRetentionPeriod,
-		StorageEncrypted:      c.StorageEncrypted,
+		BackupRetentionPeriod: functions.GetVal(c.BackupRetentionPeriod),
+		StorageEncrypted:      functions.GetVal(c.StorageEncrypted),
+		ScalingConfiguration:  scalingConfigData,
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

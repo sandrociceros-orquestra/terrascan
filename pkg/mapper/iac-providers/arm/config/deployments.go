@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,9 +19,10 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/accurics/terrascan/pkg/mapper/convert"
-	fn "github.com/accurics/terrascan/pkg/mapper/iac-providers/arm/functions"
-	"github.com/accurics/terrascan/pkg/mapper/iac-providers/arm/types"
+	"github.com/tenable/terrascan/pkg/mapper/convert"
+	fn "github.com/tenable/terrascan/pkg/mapper/iac-providers/arm/functions"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/arm/types"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 	"go.uber.org/zap"
 )
 
@@ -49,10 +50,10 @@ func DeploymentsConfig(r types.Resource, vars, params map[string]interface{}) ma
 	cf := map[string]interface{}{
 		tfLocation: fn.LookUpString(vars, params, r.Location),
 		tfName:     fn.LookUpString(vars, params, r.Name),
-		tfTags:     r.Tags,
+		tfTags:     functions.PatchAWSTags(r.Tags),
 	}
 
-	// if template is defiened directly
+	// if template is defined directly
 	if template := convert.ToMap(r.Properties, armTemplate); template != nil {
 		templateContent, err := json.Marshal(template)
 		if err != nil {
@@ -86,9 +87,9 @@ func DeploymentsConfig(r types.Resource, vars, params map[string]interface{}) ma
 			)
 		}
 		cf[tfParametersContent] = parametersContent
-	} else if paramtersLink := convert.ToMap(r.Properties, armParametersLink); paramtersLink != nil {
-		if parametersURI := convert.ToString(paramtersLink, armURI); parametersURI != "" {
-			// if paramtersLink has a uri
+	} else if parametersLink := convert.ToMap(r.Properties, armParametersLink); parametersLink != nil {
+		if parametersURI := convert.ToString(parametersLink, armURI); parametersURI != "" {
+			// if parametersLink has a uri
 			parametersURI = fn.LookUpString(vars, params, parametersURI)
 			parametersContent, err := fn.ResolveLinkedTemplate(parametersURI)
 			if err != nil {

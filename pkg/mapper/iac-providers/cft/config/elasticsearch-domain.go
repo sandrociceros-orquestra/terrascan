@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/elasticsearch"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticsearch"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
@@ -27,7 +28,7 @@ const (
 	ElasticsearchDomainAccessPolicy = "Policy"
 )
 
-// ElasticsearchDomainConfig holds config for aws_elastisearch_domain
+// ElasticsearchDomainConfig holds config for aws_elasticsearch_domain
 type ElasticsearchDomainConfig struct {
 	EncryptionAtRest            interface{} `json:"encrypt_at_rest,omitempty"`
 	LogPublishingOptions        interface{} `json:"log_publishing_options,omitempty"`
@@ -42,32 +43,33 @@ type ElasticsearchDomainAccessPolicyConfig struct {
 	AccessPolicies string `json:"access_policies"`
 }
 
-// EncryptionAtRestConfig holds config for encrypt_at_rest attribute of aws_elastisearch_domain
+// EncryptionAtRestConfig holds config for encrypt_at_rest attribute of aws_elasticsearch_domain
 type EncryptionAtRestConfig struct {
 	KmsKeyID string `json:"kms_key_id,omitempty"`
 	Enabled  bool   `json:"enabled"`
 }
 
-// LogPublishingOptionsConfig holds config for log_publishing_options attribute of aws_elastisearch_domain
+// LogPublishingOptionsConfig holds config for log_publishing_options attribute of aws_elasticsearch_domain
 type LogPublishingOptionsConfig struct {
 	LogType string `json:"log_type,omitempty"`
 	Enabled bool   `json:"enabled,omitempty"`
 }
 
-// NodeToNodeEncryptionOptionsConfig holds config for node_to_node_encryption attribute of aws_elastisearch_domain
+// NodeToNodeEncryptionOptionsConfig holds config for node_to_node_encryption attribute of aws_elasticsearch_domain
 type NodeToNodeEncryptionOptionsConfig struct {
 	Enabled bool `json:"enabled,omitempty"`
 }
 
-// GetElasticsearchDomainConfig returns config for aws_elastisearch_domain and aws_elasticsearch_domain_policy
+// GetElasticsearchDomainConfig returns config for aws_elasticsearch_domain and aws_elasticsearch_domain_policy
+// aws_elasticsearch_domain and aws_elasticsearch_domain_policy
 func GetElasticsearchDomainConfig(d *elasticsearch.Domain) []AWSResourceConfig {
 	resourceConfigs := make([]AWSResourceConfig, 0)
 
 	// add domain config
 	esDomainConfig := ElasticsearchDomainConfig{
 		Config: Config{
-			Name: d.DomainName,
-			Tags: d.Tags,
+			Name: functions.GetVal(d.DomainName),
+			Tags: functions.PatchAWSTags(d.Tags),
 		},
 	}
 
@@ -75,7 +77,7 @@ func GetElasticsearchDomainConfig(d *elasticsearch.Domain) []AWSResourceConfig {
 		lpConfig := make([]LogPublishingOptionsConfig, 0)
 		for ltype, options := range d.LogPublishingOptions {
 			lpConfig = append(lpConfig, LogPublishingOptionsConfig{
-				Enabled: options.Enabled,
+				Enabled: functions.GetVal(options.Enabled),
 				LogType: ltype,
 			})
 		}
@@ -84,14 +86,14 @@ func GetElasticsearchDomainConfig(d *elasticsearch.Domain) []AWSResourceConfig {
 
 	if d.NodeToNodeEncryptionOptions != nil {
 		esDomainConfig.NodeToNodeEncryptionOptions = []NodeToNodeEncryptionOptionsConfig{{
-			Enabled: d.NodeToNodeEncryptionOptions.Enabled,
+			Enabled: functions.GetVal(d.NodeToNodeEncryptionOptions.Enabled),
 		}}
 	}
 
 	if d.EncryptionAtRestOptions != nil {
 		enc := EncryptionAtRestConfig{
-			KmsKeyID: d.EncryptionAtRestOptions.KmsKeyId,
-			Enabled:  d.EncryptionAtRestOptions.Enabled,
+			KmsKeyID: functions.GetVal(d.EncryptionAtRestOptions.KmsKeyId),
+			Enabled:  functions.GetVal(d.EncryptionAtRestOptions.Enabled),
 		}
 		esDomainConfig.EncryptionAtRest = []EncryptionAtRestConfig{enc}
 	}
@@ -105,7 +107,7 @@ func GetElasticsearchDomainConfig(d *elasticsearch.Domain) []AWSResourceConfig {
 	if d.AccessPolicies != nil {
 		policyConfig := ElasticsearchDomainAccessPolicyConfig{
 			Config: Config{
-				Name: d.DomainName,
+				Name: functions.GetVal(d.DomainName),
 			},
 		}
 		policies, err := json.Marshal(d.AccessPolicies)
@@ -115,7 +117,7 @@ func GetElasticsearchDomainConfig(d *elasticsearch.Domain) []AWSResourceConfig {
 		resourceConfigs = append(resourceConfigs, AWSResourceConfig{
 			Resource: policyConfig,
 			Type:     ElasticsearchDomainAccessPolicy,
-			Name:     d.DomainName,
+			Name:     functions.GetVal(d.DomainName),
 			Metadata: d.AWSCloudFormationMetadata,
 		})
 	}

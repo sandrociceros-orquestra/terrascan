@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/sagemaker"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/sagemaker"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // ImageConfigBlock holds config for ImageConfig
 type ImageConfigBlock struct {
@@ -43,10 +46,14 @@ type SagemakerModelConfig struct {
 }
 
 // GetSagemakerModelConfig returns config for SagemakerModel
+// aws_sagemaker_model
 func GetSagemakerModelConfig(m *sagemaker.Model) []AWSResourceConfig {
-	container := make([]ContainerBlock, len(m.Containers))
-	for i := range m.Containers {
-		container[i] = getContainer(m.Containers[i])
+	var containerBlock []ContainerBlock
+	if m.Containers != nil {
+		containerBlock = make([]ContainerBlock, len(m.Containers))
+		for i, container := range m.Containers {
+			containerBlock[i] = getContainer(container)
+		}
 	}
 
 	var primaryContainer []ContainerBlock
@@ -57,12 +64,12 @@ func GetSagemakerModelConfig(m *sagemaker.Model) []AWSResourceConfig {
 
 	cf := SagemakerModelConfig{
 		Config: Config{
-			Name: m.ModelName,
-			Tags: m.Tags,
+			Name: functions.GetVal(m.ModelName),
+			Tags: functions.PatchAWSTags(m.Tags),
 		},
-		Name:             m.ModelName,
+		Name:             functions.GetVal(m.ModelName),
 		ExecutionRoleARN: m.ExecutionRoleArn,
-		Container:        container,
+		Container:        containerBlock,
 		PrimaryContainer: primaryContainer,
 	}
 
@@ -75,10 +82,10 @@ func GetSagemakerModelConfig(m *sagemaker.Model) []AWSResourceConfig {
 func getContainer(gftContainer sagemaker.Model_ContainerDefinition) ContainerBlock {
 	var container ContainerBlock
 
-	container.Image = gftContainer.Image
-	container.Mode = gftContainer.Mode
-	container.ModelDataURL = gftContainer.ModelDataUrl
-	container.ContainerHostname = gftContainer.ContainerHostname
+	container.Image = functions.GetVal(gftContainer.Image)
+	container.Mode = functions.GetVal(gftContainer.Mode)
+	container.ModelDataURL = functions.GetVal(gftContainer.ModelDataUrl)
+	container.ContainerHostname = functions.GetVal(gftContainer.ContainerHostname)
 	container.Environment = gftContainer.Environment
 
 	if gftContainer.ImageConfig != nil {

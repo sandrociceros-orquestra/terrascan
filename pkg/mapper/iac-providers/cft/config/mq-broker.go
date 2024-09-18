@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/amazonmq"
+	"github.com/awslabs/goformation/v7/cloudformation/amazonmq"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // MqBrokerConfig holds config for aws_mq_broker
@@ -28,22 +29,23 @@ type MqBrokerConfig struct {
 }
 
 // GetMqBorkerConfig returns config for aws_mq_broker
+// aws_mq_broker
 func GetMqBorkerConfig(c *amazonmq.Broker) []AWSResourceConfig {
 	cf := MqBrokerConfig{
 		Config: Config{
 			Name: c.BrokerName,
-			Tags: c.Tags,
+			Tags: functions.PatchAWSTags(c.Tags),
 		},
 		PubliclyAccessible: c.PubliclyAccessible,
 	}
 	if c.Logs != nil {
 		log := make(map[string]bool)
-		if c.Logs.Audit {
+		if functions.GetVal(c.Logs.Audit) {
 			log["audit"] = true
 		} else {
 			log["audit"] = false
 		}
-		if c.Logs.General {
+		if functions.GetVal(c.Logs.General) {
 			log["general"] = true
 		} else {
 			log["general"] = false

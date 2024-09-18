@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/eks"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/eks"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // EKSVPCConfigBlock holds config for EKSVPCConfig
 type EKSVPCConfigBlock struct {
@@ -36,6 +39,7 @@ type EksClusterConfig struct {
 }
 
 // GetEksClusterConfig returns config for EksCluster
+// aws_eks_cluster
 func GetEksClusterConfig(c *eks.Cluster) []AWSResourceConfig {
 	var vpcConfig []EKSVPCConfigBlock
 	if c.ResourcesVpcConfig != nil {
@@ -43,23 +47,30 @@ func GetEksClusterConfig(c *eks.Cluster) []AWSResourceConfig {
 
 		vpcConfig[0].SubnetIDs = c.ResourcesVpcConfig.SubnetIds
 		vpcConfig[0].SecurityGroupIDs = c.ResourcesVpcConfig.SecurityGroupIds
-		vpcConfig[0].EndpointPrivateAccess = c.ResourcesVpcConfig.EndpointPrivateAccess
-		vpcConfig[0].EndpointPublicAccess = c.ResourcesVpcConfig.EndpointPublicAccess
-	}
-
-	enabledClusterLogTypes := make([]string, len(c.Logging.ClusterLogging.EnabledTypes))
-	for i := range c.Logging.ClusterLogging.EnabledTypes {
-		enabledClusterLogTypes[i] = c.Logging.ClusterLogging.EnabledTypes[i].Type
+		vpcConfig[0].EndpointPrivateAccess = functions.GetVal(c.ResourcesVpcConfig.EndpointPrivateAccess)
+		vpcConfig[0].EndpointPublicAccess = functions.GetVal(c.ResourcesVpcConfig.EndpointPublicAccess)
 	}
 
 	cf := EksClusterConfig{
 		Config: Config{
-			Name: c.Name,
+			Name: functions.GetVal(c.Name),
 		},
-		Name:                   c.Name,
-		RoleARN:                c.RoleArn,
-		VPCConfig:              vpcConfig,
-		EnabledClusterLogTypes: enabledClusterLogTypes,
+		Name:      functions.GetVal(c.Name),
+		RoleARN:   c.RoleArn,
+		VPCConfig: vpcConfig,
+	}
+
+	if c.Logging != nil {
+		if c.Logging.ClusterLogging != nil {
+			enabledTypes := c.Logging.ClusterLogging.EnabledTypes
+			if len(enabledTypes) > 0 {
+				enabledClusterLogTypes := make([]string, len(enabledTypes))
+				for i, enabledType := range enabledTypes {
+					enabledClusterLogTypes[i] = functions.GetVal(enabledType.Type)
+				}
+				cf.EnabledClusterLogTypes = enabledClusterLogTypes
+			}
+		}
 	}
 
 	return []AWSResourceConfig{{

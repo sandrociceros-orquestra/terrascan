@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/kinesisfirehose"
+	"github.com/awslabs/goformation/v7/cloudformation/kinesisfirehose"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // KinesisFirehoseDeliveryStreamConfig holds config for aws_kinesis_firehose_delivery_stream
@@ -34,18 +35,19 @@ type KinesisFirehoseDeliveryStreamSseConfig struct {
 }
 
 // GetKinesisFirehoseDeliveryStreamConfig returns aws_kinesis_firehose_delivery_stream
+// aws_kinesis_firehose_delivery_stream
 func GetKinesisFirehoseDeliveryStreamConfig(k *kinesisfirehose.DeliveryStream) []AWSResourceConfig {
 	cf := KinesisFirehoseDeliveryStreamConfig{
 		Config: Config{
-			Name: k.DeliveryStreamName,
-			Tags: k.Tags,
+			Name: functions.GetVal(k.DeliveryStreamName),
+			Tags: functions.PatchAWSTags(k.Tags),
 		},
 	}
 	sseConfig := KinesisFirehoseDeliveryStreamSseConfig{}
 	if k.DeliveryStreamEncryptionConfigurationInput != nil {
 		sseConfig.Enabled = true
 		sseConfig.KeyType = k.DeliveryStreamEncryptionConfigurationInput.KeyType
-		sseConfig.KeyARN = k.DeliveryStreamEncryptionConfigurationInput.KeyARN
+		sseConfig.KeyARN = functions.GetVal(k.DeliveryStreamEncryptionConfigurationInput.KeyARN)
 	}
 	cf.ServerSideEncryption = []KinesisFirehoseDeliveryStreamSseConfig{sseConfig}
 	return []AWSResourceConfig{{

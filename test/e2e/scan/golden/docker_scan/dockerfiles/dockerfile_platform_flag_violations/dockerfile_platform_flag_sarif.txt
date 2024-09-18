@@ -5,9 +5,8 @@
     {
       "tool": {
         "driver": {
+          "informationUri": "https://github.com/tenable/terrascan",
           "name": "terrascan",
-          "version": "1.9.0",
-          "informationUri": "https://github.com/accurics/terrascan",
           "rules": [
             {
               "id": "AC_DOCKER_0001",
@@ -20,12 +19,14 @@
                 "severity": "MEDIUM"
               }
             }
-          ]
+          ],
+          "version": "1.17.0"
         }
       },
       "results": [
         {
           "ruleId": "AC_DOCKER_0001",
+          "ruleIndex": 0,
           "level": "warning",
           "message": {
             "text": "Ensure platform flag with FROM command is not used for Docker file"
@@ -43,7 +44,7 @@
               "logicalLocations": [
                 {
                   "name": "Dockerfile",
-                  "kind": "docker_from"
+                  "kind": "docker_FROM"
                 }
               ]
             }

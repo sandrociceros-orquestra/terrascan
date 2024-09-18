@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/utils"
-	serverUtils "github.com/accurics/terrascan/test/e2e/server"
-	"github.com/accurics/terrascan/test/helper"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tenable/terrascan/pkg/utils"
+	serverUtils "github.com/tenable/terrascan/test/e2e/server"
+	"github.com/tenable/terrascan/test/helper"
 )
 
 const (
@@ -107,6 +107,7 @@ var _ = Describe("Server", func() {
 				It("server should be accepting requests", func() {
 					// logs are written in StdErr
 					Eventually(session.Err, serverUtils.ServerCommandTimeout).Should(gbytes.Say("Route GET - /health"))
+					Eventually(session.Err, serverUtils.ServerCommandTimeout).Should(gbytes.Say("Route GET - /v1/providers"))
 					Eventually(session.Err, serverUtils.ServerCommandTimeout).Should(gbytes.Say("Route POST - /v1/{iac}/{iacVersion}/{cloud}/local/file/scan"))
 					Eventually(session.Err, serverUtils.ServerCommandTimeout).Should(gbytes.Say("Route POST - /v1/{iac}/{iacVersion}/{cloud}/remote/dir/scan"))
 					Eventually(session.Err, serverUtils.ServerCommandTimeout).Should(gbytes.Say("http server listening at port 9010"))
@@ -114,12 +115,23 @@ var _ = Describe("Server", func() {
 
 				Context("request with no body on all handlers", func() {
 					healthCheckURL := fmt.Sprintf("%s:%d/health", host, defaultPort)
+					providersURL := fmt.Sprintf("%s:%d/v1/providers", host, defaultPort)
 					terraformV12LocalScanURL := fmt.Sprintf("%s:%d/v1/terraform/v12/all/local/file/scan", host, defaultPort)
-					terrformV12RemoteScanURL := fmt.Sprintf("%s:%d/v1/terraform/v12/aws/remote/dir/scan", host, defaultPort)
+					terraformV12RemoteScanURL := fmt.Sprintf("%s:%d/v1/terraform/v12/aws/remote/dir/scan", host, defaultPort)
 
 					When("health check request is made", func() {
 						It("should get 200 OK response", func() {
 							r, err := serverUtils.MakeHTTPRequest(http.MethodGet, healthCheckURL)
+							Expect(err).NotTo(HaveOccurred())
+							defer r.Body.Close()
+							Expect(r).NotTo(BeNil())
+							Expect(r.StatusCode).To(BeIdenticalTo(http.StatusOK))
+						})
+					})
+
+					When("GET request on providers is made", func() {
+						It("should get 200 OK response", func() {
+							r, err := serverUtils.MakeHTTPRequest(http.MethodGet, providersURL)
 							Expect(err).NotTo(HaveOccurred())
 							defer r.Body.Close()
 							Expect(r).NotTo(BeNil())
@@ -139,7 +151,7 @@ var _ = Describe("Server", func() {
 
 					When("GET request on remote scan handler is made", func() {
 						It("should receive method not allowed response", func() {
-							r, err := serverUtils.MakeHTTPRequest(http.MethodGet, terrformV12RemoteScanURL)
+							r, err := serverUtils.MakeHTTPRequest(http.MethodGet, terraformV12RemoteScanURL)
 							Expect(err).NotTo(HaveOccurred())
 							defer r.Body.Close()
 							Expect(r).NotTo(BeNil())
@@ -159,7 +171,7 @@ var _ = Describe("Server", func() {
 
 					When("POST request on remote scan handler is made without body", func() {
 						It("should receive bad request response", func() {
-							r, err := serverUtils.MakeHTTPRequest(http.MethodPost, terrformV12RemoteScanURL)
+							r, err := serverUtils.MakeHTTPRequest(http.MethodPost, terraformV12RemoteScanURL)
 							Expect(err).NotTo(HaveOccurred())
 							defer r.Body.Close()
 							Expect(r).NotTo(BeNil())
@@ -170,6 +182,16 @@ var _ = Describe("Server", func() {
 					When("POST request on health check", func() {
 						It("should receive method not allowed response", func() {
 							r, err := serverUtils.MakeHTTPRequest(http.MethodPost, healthCheckURL)
+							Expect(err).NotTo(HaveOccurred())
+							defer r.Body.Close()
+							Expect(r).NotTo(BeNil())
+							Expect(r.StatusCode).To(BeIdenticalTo(http.StatusMethodNotAllowed))
+						})
+					})
+
+					When("POST request on providers", func() {
+						It("should receive method not allowed response", func() {
+							r, err := serverUtils.MakeHTTPRequest(http.MethodPost, providersURL)
 							Expect(err).NotTo(HaveOccurred())
 							defer r.Body.Close()
 							Expect(r).NotTo(BeNil())

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,22 +19,24 @@ package tfv15
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
 	"testing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	commons_test "github.com/accurics/terrascan/pkg/iac-providers/terraform/commons/test"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	commons_test "github.com/tenable/terrascan/pkg/iac-providers/terraform/commons/test"
+	"github.com/tenable/terrascan/pkg/utils"
 )
+
+var testInvalidAttribdir = "terraform-with-attrib-errors/module/firewall-test"
+var unsupportedArgument = `Unsupported argument; An argument named "replace_triggered_by" is not expected here`
 
 func TestLoadIacDir(t *testing.T) {
 	var nilMultiErr *multierror.Error = nil
 
-	testErrorMessage := fmt.Sprintf(`failed to load terraform config dir '%s'. error from terraform:
+	testErrorMessage := fmt.Sprintf(`diagnostic errors while loading terraform config dir '%s'. error from terraform:
 %s:1,21-2,1: Invalid block definition; A block definition must have block content delimited by "{" and "}", starting on the same line as the block header.
 %s:1,1-5: Unsupported block type; Blocks of type "some" are not expected here.
 `, testDataDir, emptyTfFilePath, emptyTfFilePath)
@@ -53,6 +55,16 @@ func TestLoadIacDir(t *testing.T) {
 <nil>: Invalid module config directory; Module directory '%s' has no terraform config files for module m1
 `, filepath.Join(testDataDir, "invalid-module-source"), filepath.Join(testDataDir, "invalid-module-source"))
 
+	errStringUnifiedInvalidattrib := fmt.Sprintf(`failed to build unified config. errors:
+%s/firewall-module.tf:7,5-25: %s.
+%s/firewall-module.tf:25,5-25: %s.
+`, filepath.Join(testDataDir, testInvalidAttribdir), unsupportedArgument, filepath.Join(testDataDir, testInvalidAttribdir), unsupportedArgument)
+
+	errDiagnostincMessageAttrib := fmt.Sprintf(`diagnostic errors while loading terraform config dir '%s'. error from terraform:
+%s/firewall-module.tf:7,5-25: %s.
+%s/firewall-module.tf:25,5-25: %s.
+`, filepath.Join(testDataDir, testInvalidAttribdir), filepath.Join(testDataDir, testInvalidAttribdir), unsupportedArgument, filepath.Join(testDataDir, testInvalidAttribdir), unsupportedArgument)
+
 	testDirPath1 := "not-there"
 	testDirPath2 := filepath.Join(testDataDir, "testfile")
 	invalidDirErrStringTemplate := "directory '%s' has no terraform config files"
@@ -61,6 +73,7 @@ func TestLoadIacDir(t *testing.T) {
 	if utils.IsWindowsPlatform() {
 		pathErr = &os.PathError{Op: "CreateFile", Path: "not-there", Err: syscall.ENOENT}
 	}
+	err1 := fmt.Errorf(errStringInvalidModuleConfigs) //lint:ignore SA1006 placeholder %s are specified in string constants 71
 
 	table := []struct {
 		name    string
@@ -114,7 +127,7 @@ func TestLoadIacDir(t *testing.T) {
 			dirPath: filepath.Join(testDataDir, "invalid-moduleconfigs"),
 			tfv15:   TfV15{},
 			// same error is loaded two times because, both root module and a child module will generated same error
-			wantErr: multierror.Append(fmt.Errorf(errStringInvalidModuleConfigs), fmt.Errorf(errStringInvalidModuleConfigs)),
+			wantErr: multierror.Append(err1, err1),
 		},
 		{
 			name:    "load invalid config dir",
@@ -123,29 +136,33 @@ func TestLoadIacDir(t *testing.T) {
 			options: map[string]interface{}{
 				"nonRecursive": true,
 			},
-			wantErr: multierror.Append(fmt.Errorf(testErrorMessage)),
+			wantErr: multierror.Append(fmt.Errorf(testErrorMessage)), //lint:ignore SA1006 placeholder %s are specified in string constants 4
 		},
 		{
 			name:    "load invalid config dir recursive",
 			dirPath: testDataDir,
 			tfv15:   TfV15{},
-			wantErr: multierror.Append(fmt.Errorf(testErrorMessage),
+			wantErr: multierror.Append(fmt.Errorf(testErrorMessage), //lint:ignore SA1006 placeholder %s are specified in string constants 3
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "deep-modules", "modules")),
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "deep-modules", "modules", "m4", "modules")),
-				fmt.Errorf(errStringDependsOnDir),
+				fmt.Errorf(errStringDependsOnDir), //lint:ignore SA1006 placeholder %s are specified in string constants 4
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "invalid-module-source")),
-				fmt.Errorf(errStringModuleSourceInvalid),
-				fmt.Errorf(errStringInvalidModuleConfigs),
-				fmt.Errorf(errStringInvalidModuleConfigs),
+				fmt.Errorf(errStringModuleSourceInvalid), //lint:ignore SA1006 placeholder %s are specified in string constants 5
+				err1,
+				err1,
 				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "relative-moduleconfigs")),
-				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "tfjson")),
-			),
+				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "terraform-with-attrib-errors")),           // 9 good
+				fmt.Errorf(errStringUnifiedInvalidattrib),                                                                     //lint:ignore SA1006 placeholder %s are specified in string constants 8                                                            // nolint:staticcheck                                                                  // nolint:staticcheck                                                                   //nolint:SA1006                                                                   // 10 good
+				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "terraform-with-attrib-errors", "module")), // 11 good
+				fmt.Errorf(errDiagnostincMessageAttrib),                                                                       //lint:ignore SA1006 placeholder %s are specified in string constants 9                                                            // nolint:staticcheck                                                                     //nolint:SA1006                                                                     // 12
+				fmt.Errorf(invalidDirErrStringTemplate, filepath.Join(testDataDir, "tfjson")),                                 // 13 good
+			), // nolint:staticcheck
 		},
 		{
 			name:    "invalid module source directory",
 			dirPath: filepath.Join(testDataDir, "invalid-module-source", "invalid_source"),
 			tfv15:   TfV15{},
-			wantErr: multierror.Append(fmt.Errorf(errStringModuleSourceInvalid)),
+			wantErr: multierror.Append(fmt.Errorf(errStringModuleSourceInvalid)), //lint:ignore SA1006 placeholder %s are specified in string constants 10
 		},
 		{
 			name:    "provider block with only alias",
@@ -273,6 +290,16 @@ func TestLoadIacDir(t *testing.T) {
 			},
 			wantErr: nilMultiErr,
 		},
+		{
+			name:        "Invalid attribute error should be ignored and should return resources",
+			tfConfigDir: filepath.Join(testDataDir, "terraform-with-attrib-errors/firewall"),
+			tfJSONFile:  filepath.Join(tfJSONDir, "firewall-with-attrib-error.json"),
+			tfv15:       TfV15{},
+			options: map[string]interface{}{
+				"nonRecursive": true,
+			},
+			wantErr: multierror.Append(fmt.Errorf("failed to build terraform allResourcesConfig")),
+		},
 	}
 
 	for _, tt := range table2 {
@@ -293,7 +320,7 @@ func TestLoadIacDir(t *testing.T) {
 			var want output.AllResourceConfigs
 
 			// Read the expected value and unmarshal into want
-			contents, _ := ioutil.ReadFile(tt.tfJSONFile)
+			contents, _ := os.ReadFile(tt.tfJSONFile)
 			if utils.IsWindowsPlatform() {
 				contents = utils.ReplaceWinNewLineBytes(contents)
 			}

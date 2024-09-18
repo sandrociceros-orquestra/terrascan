@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/awslabs/goformation/v5/cloudformation/efs"
+	"github.com/awslabs/goformation/v7/cloudformation/efs"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
@@ -41,6 +42,7 @@ type EfsFileSystemPolicyConfig struct {
 }
 
 // GetEfsFileSystemConfig returns config for aws_efs_file_system and aws_efs_file_system_policy
+// aws_efs_file_system and aws_efs_file_system_policy
 func GetEfsFileSystemConfig(f *efs.FileSystem) []AWSResourceConfig {
 
 	resourceConfigs := make([]AWSResourceConfig, 0)
@@ -48,8 +50,8 @@ func GetEfsFileSystemConfig(f *efs.FileSystem) []AWSResourceConfig {
 	resourceConfigs = append(resourceConfigs, AWSResourceConfig{
 		Metadata: f.AWSCloudFormationMetadata,
 		Resource: EfsFileSystemConfig{
-			KmsKeyID:  f.KmsKeyId,
-			Encrypted: f.Encrypted,
+			KmsKeyID:  functions.GetVal(f.KmsKeyId),
+			Encrypted: functions.GetVal(f.Encrypted),
 		},
 	})
 

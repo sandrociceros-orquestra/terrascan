@@ -1,17 +1,17 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+	    Copyright (C) 2022 Tenable, Inc.
 
-	Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+		Licensed under the Apache License, Version 2.0 (the "License");
+	    you may not use this file except in compliance with the License.
+	    You may obtain a copy of the License at
 
-		http://www.apache.org/licenses/LICENSE-2.0
+			http://www.apache.org/licenses/LICENSE-2.0
 
-	Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+		Unless required by applicable law or agreed to in writing, software
+	    distributed under the License is distributed on an "AS IS" BASIS,
+	    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	    See the License for the specific language governing permissions and
+	    limitations under the License.
 */
 package help_test
 
@@ -19,11 +19,11 @@ import (
 	"io"
 	"path/filepath"
 
-	helpUtils "github.com/accurics/terrascan/test/e2e/help"
-	"github.com/accurics/terrascan/test/helper"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
+	helpUtils "github.com/tenable/terrascan/test/e2e/help"
+	"github.com/tenable/terrascan/test/helper"
 )
 
 var (
@@ -65,7 +65,7 @@ var _ = Describe("Help", func() {
 		})
 	})
 
-	Describe("terrascan is run with an unkonwn command", func() {
+	Describe("terrascan is run with an unknown command", func() {
 		It("should exit with status code 1 and display a error message", func() {
 			session = helper.RunCommand(terrascanBinaryPath, outWriter, errWriter, "test")
 			helpUtils.ValidateExitCodeAndOutput(session, helper.ExitCodeOne, filepath.Join("golden", "incorrect_command.txt"), false)
@@ -108,7 +108,7 @@ var _ = Describe("Help", func() {
 			})
 		})
 
-		Context("for an unkonwn command", func() {
+		Context("for an unknown command", func() {
 			It("should display that help topic is not available for entered command and exit with status code 0", func() {
 				session = helper.RunCommand(terrascanBinaryPath, outWriter, errWriter, helpCommand, "test")
 				helpUtils.ValidateExitCodeAndOutput(session, helper.ExitCodeZero, filepath.Join("golden", "help_unsupported_command.txt"), false)

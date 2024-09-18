@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ package commons
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hclConfigs "github.com/hashicorp/terraform/configs"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
 	"go.uber.org/zap"
 )
 
@@ -45,7 +45,7 @@ const (
 	containerDefinitions   = "container_definitions"
 )
 
-// all the type of resources which has container definitaions
+// all the type of resources which has container definitions
 var k8sResources = map[string]struct{}{
 	"kubernetes_deployment":             {},
 	"kubernetes_pod":                    {},
@@ -56,23 +56,23 @@ var k8sResources = map[string]struct{}{
 	"kubernetes_replication_controller": {},
 }
 
-// isKuberneteResource - verifies resource is k8s type
-func isKuberneteResource(resource *hclConfigs.Resource) bool {
+// isKubernetesResource - verifies resource is k8s type
+func isKubernetesResource(resource *hclConfigs.Resource) bool {
 	_, ok := k8sResources[resource.Type]
 	return ok
 }
 
-//isAzureConatinerResource verifies resource is azure type
-func isAzureConatinerResource(resource *hclConfigs.Resource) bool {
+// isAzureContainerResource verifies resource is azure type
+func isAzureContainerResource(resource *hclConfigs.Resource) bool {
 	return resource.Type == azureContainerResource
 }
 
-//isAwsConatinerResource verifies resource is aws type
-func isAwsConatinerResource(resource *hclConfigs.Resource) bool {
+// isAwsContainerResource verifies resource is aws type
+func isAwsContainerResource(resource *hclConfigs.Resource) bool {
 	return resource.Type == awsContainerResources
 }
 
-//fetchConatinersFromAzureResource extracts all the containers from azure resource
+// fetchContainersFromAzureResource extracts all the containers from azure resource
 func fetchContainersFromAzureResource(resource jsonObj) []output.ContainerDetails {
 	results := []output.ContainerDetails{}
 	if v, ok := resource[container]; ok {
@@ -83,7 +83,7 @@ func fetchContainersFromAzureResource(resource jsonObj) []output.ContainerDetail
 	return results
 }
 
-//fetchConatinersFromAwsResource extracts all the containers from aws ecs resource
+// fetchContainersFromAwsResource extracts all the containers from aws ecs resource
 func fetchContainersFromAwsResource(resource jsonObj, hclBody *hclsyntax.Body, resourcePath string) []output.ContainerDetails {
 	results := []output.ContainerDetails{}
 	if v, ok := resource[containerDefinitions]; ok {
@@ -98,9 +98,9 @@ func fetchContainersFromAwsResource(resource jsonObj, hclBody *hclsyntax.Body, r
 			if !filepath.IsAbs(fileLocation) {
 				fileLocation = filepath.Join(dir, fileLocation)
 			}
-			fileData, err := ioutil.ReadFile(fileLocation)
+			fileData, err := os.ReadFile(fileLocation)
 			if err != nil {
-				zap.S().Errorf("error fetching containers from aws resource: %v", err)
+				zap.S().Warnf("failed to fetch containers from aws resource: %v", err)
 				return results
 			}
 			def = string(fileData)
@@ -108,7 +108,7 @@ func fetchContainersFromAwsResource(resource jsonObj, hclBody *hclsyntax.Body, r
 		containers := []jsonObj{}
 		err := json.Unmarshal([]byte(def), &containers)
 		if err != nil {
-			zap.S().Errorf("error fetching containers from aws resource: %v", err)
+			zap.S().Warnf("failed to fetch containers from aws resource: %v", err)
 			return results
 		}
 		results = getContainers(containers)
@@ -116,7 +116,7 @@ func fetchContainersFromAwsResource(resource jsonObj, hclBody *hclsyntax.Body, r
 	return results
 }
 
-//getContainersFromhclBody parses the attribute and creates container object
+// getContainersFromhclBody parses the attribute and creates container object
 func getContainersFromhclBody(hclBody *hclsyntax.Body) (results []output.ContainerDetails) {
 	for _, v := range hclBody.Attributes {
 		if v.Name == containerDefinitions {
@@ -126,7 +126,7 @@ func getContainersFromhclBody(hclBody *hclsyntax.Body) (results []output.Contain
 				for _, arg := range funcExp.Args {
 					re, diags := arg.Value(nil)
 					if diags.HasErrors() {
-						zap.S().Errorf("error fetching containers from aws resource: %v", getErrorMessagesFromDiagnostics(diags))
+						zap.S().Warnf("failed to fetch the container from aws resource: %v", getErrorMessagesFromDiagnostics(diags))
 						return
 					}
 					if !re.CanIterateElements() {
@@ -137,7 +137,7 @@ func getContainersFromhclBody(hclBody *hclsyntax.Body) (results []output.Contain
 						_, val := it.Element()
 						containerTemp, err := convertCtyToGoNative(val)
 						if err != nil {
-							zap.S().Errorf("error fetching containers from aws resource: %v", err)
+							zap.S().Warnf("failed to fetch the container from aws resource: %v", err)
 							return
 						}
 						var (
@@ -194,7 +194,7 @@ func getContainers(containers []jsonObj) (results []output.ContainerDetails) {
 	return
 }
 
-//extractContainerImagesFromk8sResources extracts containers from k8s resource
+// extractContainerImagesFromk8sResources extracts containers from k8s resource
 func extractContainerImagesFromk8sResources(resource *hclConfigs.Resource, body *hclsyntax.Body) (containers, initContainers []output.ContainerDetails) {
 	for _, block := range body.Blocks {
 		if block.Type == spec {
@@ -225,7 +225,7 @@ func getContainerAndInitContainerFromSpecBlocks(specs *hclsyntax.Body) (containe
 	return
 }
 
-//getContainerAndInitContainerFromTemplateBlocks extracts container config from template block of resource
+// getContainerAndInitContainerFromTemplateBlocks extracts container config from template block of resource
 func getContainerAndInitContainerFromTemplateBlocks(templateBlocks []*hclsyntax.Block) (containers, initContainers []*hclsyntax.Block) {
 	for _, templateBlocks := range templateBlocks {
 		if templateBlocks.Type == spec {
@@ -241,11 +241,11 @@ func getContainerAndInitContainerFromTemplateBlocks(templateBlocks []*hclsyntax.
 	return
 }
 
-//getContainerConfigFromContainerBlock creates container config from container block of resource
+// getContainerConfigFromContainerBlock creates container config from container block of resource
 func getContainerConfigFromContainerBlock(containerBlocks []*hclsyntax.Block) (containerImages []output.ContainerDetails) {
-	for _, conatainerBlock := range containerBlocks {
+	for _, containerBlock := range containerBlocks {
 		containerImage := output.ContainerDetails{}
-		for _, attr := range conatainerBlock.Body.Attributes {
+		for _, attr := range containerBlock.Body.Attributes {
 			if attr.Name == image {
 				containerImage.Image = getValueFromCtyExpr(attr.Expr)
 			}
@@ -261,7 +261,7 @@ func getContainerConfigFromContainerBlock(containerBlocks []*hclsyntax.Block) (c
 	return
 }
 
-//getValueFromCtyExpr get value string from hcl expression
+// getValueFromCtyExpr get value string from hcl expression
 func getValueFromCtyExpr(expr hclsyntax.Expression) (value string) {
 	val, diags := expr.Value(nil)
 	if diags.HasErrors() {

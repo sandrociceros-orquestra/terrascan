@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/kinesis"
+	"github.com/awslabs/goformation/v7/cloudformation/kinesis"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // KinesisStreamConfig holds config for aws_kinesis_stream
@@ -29,13 +30,14 @@ type KinesisStreamConfig struct {
 }
 
 // GetKinesisStreamConfig returns config for aws_kinesis_stream
+// aws_kinesis_stream
 func GetKinesisStreamConfig(k *kinesis.Stream) []AWSResourceConfig {
 	cf := KinesisStreamConfig{
 		Config: Config{
-			Name: k.Name,
-			Tags: k.Tags,
+			Name: functions.GetVal(k.Name),
+			Tags: functions.PatchAWSTags(k.Tags),
 		},
-		Name: k.Name,
+		Name: functions.GetVal(k.Name),
 	}
 
 	if k.StreamEncryption != nil {

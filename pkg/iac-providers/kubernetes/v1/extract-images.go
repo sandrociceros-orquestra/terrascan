@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,10 +19,10 @@ package k8sv1
 import (
 	"encoding/json"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
 	yamltojson "github.com/ghodss/yaml"
 	"github.com/pkg/errors"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 	k8sappsv1 "k8s.io/api/apps/v1"
 	k8sbatchv1 "k8s.io/api/batch/v1"
@@ -142,7 +142,7 @@ func (k *K8sV1) extractContainerImages(kind string, doc *utils.IacDocument) ([]o
 	return containerImages, initContainerImages, nil
 }
 
-//readContainers prepares list of containers and init containers from k8scorev1.Container object
+// readContainers prepares list of containers and init containers from k8scorev1.Container object
 func readContainers(containers []k8scorev1.Container) (containerImages []output.ContainerDetails) {
 	for _, container := range containers {
 		containerImages = append(containerImages, output.ContainerDetails{Name: container.Name, Image: container.Image})

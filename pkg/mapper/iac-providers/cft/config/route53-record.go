@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/route53"
+	"github.com/awslabs/goformation/v7/cloudformation/route53"
 )
 
 // Route53RecordConfig holds config for aws_route53_record
@@ -27,6 +27,7 @@ type Route53RecordConfig struct {
 }
 
 // GetRoute53RecordConfig returns config for aws_route53_record
+// aws_route53_record
 func GetRoute53RecordConfig(r *route53.RecordSet) []AWSResourceConfig {
 	cf := Route53RecordConfig{
 		Config: Config{

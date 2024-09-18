@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/awslabs/goformation/v5/cloudformation/iam"
+	"github.com/awslabs/goformation/v7/cloudformation/iam"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 const (
@@ -42,15 +43,15 @@ type IamRolePolicyConfig struct {
 	PolicyDocument string `json:"policy"`
 }
 
-// GetIamRoleConfig returns config for aws_iam_role and aws_iam_role_policy
+// GetIamRoleConfig returns config for aws_iam_role and aws_iam_role_policy // aws_iam_role, aws_iam_role_policy
 func GetIamRoleConfig(r *iam.Role) []AWSResourceConfig {
 	resourceConfigs := make([]AWSResourceConfig, 0)
 
 	// add aws_iam_role
 	roleConfig := IamRoleConfig{
 		Config: Config{
-			Name: r.RoleName,
-			Tags: r.Tags,
+			Name: functions.GetVal(r.RoleName),
+			Tags: functions.PatchAWSTags(r.Tags),
 		},
 	}
 	policyDocument, err := json.Marshal(r.AssumeRolePolicyDocument)

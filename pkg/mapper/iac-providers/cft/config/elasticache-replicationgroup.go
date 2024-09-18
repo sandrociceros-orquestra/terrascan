@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/elasticache"
+	"github.com/awslabs/goformation/v7/cloudformation/elasticache"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // ElastiCacheReplicationGroupConfig holds config for aws_elasticache_replication_group
@@ -28,13 +29,14 @@ type ElastiCacheReplicationGroupConfig struct {
 }
 
 // GetElastiCacheReplicationGroupConfig returns config for aws_elasticache_replication_group
+// aws_elasticache_replication_group
 func GetElastiCacheReplicationGroupConfig(r *elasticache.ReplicationGroup) []AWSResourceConfig {
 	cf := ElastiCacheReplicationGroupConfig{
 		Config: Config{
-			Tags: r.Tags,
+			Tags: functions.PatchAWSTags(r.Tags),
 		},
-		AtRestEncryptionEnabled:  r.AtRestEncryptionEnabled,
-		TransitEncryptionEnabled: r.TransitEncryptionEnabled,
+		AtRestEncryptionEnabled:  functions.GetVal(r.AtRestEncryptionEnabled),
+		TransitEncryptionEnabled: functions.GetVal(r.TransitEncryptionEnabled),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/redshift"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/redshift"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // ParameterBlock holds config for Parameter
 type ParameterBlock struct {
@@ -34,17 +37,21 @@ type RedshiftParameterGroupConfig struct {
 }
 
 // GetRedshiftParameterGroupConfig returns config for RedshiftParameterGroup
+// aws_redshift_parameter_group
 func GetRedshiftParameterGroupConfig(p *redshift.ClusterParameterGroup, paramGroupName string) []AWSResourceConfig {
-	parameterBlock := make([]ParameterBlock, len(p.Parameters))
-	for i := range p.Parameters {
-		parameterBlock[i].Name = p.Parameters[i].ParameterName
-		parameterBlock[i].Value = p.Parameters[i].ParameterValue
+	var parameterBlock []ParameterBlock
+	if p.Parameters != nil {
+		parameterBlock := make([]ParameterBlock, len(p.Parameters))
+		for i, parameter := range p.Parameters {
+			parameterBlock[i].Name = parameter.ParameterName
+			parameterBlock[i].Value = parameter.ParameterValue
+		}
 	}
 
 	cf := RedshiftParameterGroupConfig{
 		Config: Config{
 			Name: paramGroupName,
-			Tags: p.Tags,
+			Tags: functions.PatchAWSTags(p.Tags),
 		},
 		Name:        paramGroupName,
 		Description: p.Description,

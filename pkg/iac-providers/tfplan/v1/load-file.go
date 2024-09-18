@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,18 +19,18 @@ package tfplan
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
 const jqQuery = `[.planned_values.root_module | .. | select(.type? != null and .address? != null and .mode? == "managed") | {id: .address?, type: .type?, name: .name?, config: .values?, source: ""}]`
 
 var (
-	errIncorrectFormatVersion = fmt.Errorf("terraform format version shoule be one of '%s'", strings.Join(getTfPlanFormatVersions(), ", "))
+	errIncorrectFormatVersion = fmt.Errorf("terraform format version should be one of '%s'", strings.Join(getTfPlanFormatVersions(), ", "))
 	errEmptyTerraformVersion  = fmt.Errorf("terraform version cannot be empty in tfplan json")
 )
 
@@ -44,11 +44,11 @@ func (t *TFPlan) LoadIacFile(absFilePath string, options map[string]interface{})
 	zap.S().Debug("processing tfplan file")
 
 	// read tfplan json file
-	tfjson, err := ioutil.ReadFile(absFilePath)
+	tfjson, err := os.ReadFile(absFilePath)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to read tfplan JSON file. error: '%v'", err)
 		zap.S().Debug(errMsg)
-		return allResourcesConfig, fmt.Errorf(errMsg)
+		return allResourcesConfig, fmt.Errorf(errMsg) //lint:ignore SA1006 placeholder %s are specified in string constants
 	}
 
 	// validate if provide file is a valid tfplan file
@@ -61,15 +61,15 @@ func (t *TFPlan) LoadIacFile(absFilePath string, options map[string]interface{})
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to process tfplan JSON. error: '%v'", err)
 		zap.S().Debug(errMsg)
-		return allResourcesConfig, fmt.Errorf(errMsg)
+		return allResourcesConfig, fmt.Errorf(errMsg) //lint:ignore SA1006 placeholder %s are specified in string constants
 	}
 
 	// decode processed out into output.ResourceConfig
 	var resourceConfigs []output.ResourceConfig
 	if err := json.Unmarshal(processed, &resourceConfigs); err != nil {
-		errMsg := fmt.Sprintf("failed to decode proceesed jq output. error: '%v'", err)
+		errMsg := fmt.Sprintf("failed to decode processed jq output. error: '%v'", err)
 		zap.S().Debug(errMsg)
-		return allResourcesConfig, fmt.Errorf(errMsg)
+		return allResourcesConfig, fmt.Errorf(errMsg) //lint:ignore SA1006 placeholder %s are specified in string constants
 	}
 
 	// create AllResourceConfigs from resourceConfigs

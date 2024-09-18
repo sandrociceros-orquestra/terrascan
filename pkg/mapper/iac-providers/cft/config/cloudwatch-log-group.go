@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 package config
 
 import (
-	"github.com/awslabs/goformation/v5/cloudformation/logs"
+	"github.com/awslabs/goformation/v7/cloudformation/logs"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
 )
 
 // LogCloudWatchGroupConfig holds config for aws_cloudwatch_log_group
@@ -29,14 +30,15 @@ type LogCloudWatchGroupConfig struct {
 }
 
 // GetLogCloudWatchGroupConfig returns config for aws_cloudwatch_log_group
+// aws_cloudwatch_log_group
 func GetLogCloudWatchGroupConfig(r *logs.LogGroup) []AWSResourceConfig {
 	cf := LogCloudWatchGroupConfig{
 		Config: Config{
-			Name: r.LogGroupName,
+			Name: functions.GetVal(r.LogGroupName),
 		},
-		LogGroupName:    r.LogGroupName,
-		KmsKeyID:        r.KmsKeyId,
-		RetentionInDays: r.RetentionInDays,
+		LogGroupName:    functions.GetVal(r.LogGroupName),
+		KmsKeyID:        functions.GetVal(r.KmsKeyId),
+		RetentionInDays: functions.GetVal(r.RetentionInDays),
 	}
 	return []AWSResourceConfig{{
 		Resource: cf,

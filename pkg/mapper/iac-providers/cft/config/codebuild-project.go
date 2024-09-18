@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2022 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/codebuild"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/codebuild"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // ArtifactBlock holds config for ArtifactBlock
 type ArtifactBlock struct {
@@ -60,6 +63,7 @@ type CodebuildProjectConfig struct {
 }
 
 // GetCodebuildProjectConfig returns CodebuildProject
+// aws_codebuild_project
 func GetCodebuildProjectConfig(p *codebuild.Project) []AWSResourceConfig {
 
 	var artifactBlock []ArtifactBlock
@@ -84,7 +88,7 @@ func GetCodebuildProjectConfig(p *codebuild.Project) []AWSResourceConfig {
 		environmentBlock[0].ComputeType = p.Environment.ComputeType
 		environmentBlock[0].Image = p.Environment.Image
 		environmentBlock[0].Type = p.Environment.Type
-		environmentBlock[0].ImagePullCredentialsType = p.Environment.ImagePullCredentialsType
+		environmentBlock[0].ImagePullCredentialsType = functions.GetVal(p.Environment.ImagePullCredentialsType)
 	}
 
 	var sourceBlock []SourceBlock
@@ -92,20 +96,20 @@ func GetCodebuildProjectConfig(p *codebuild.Project) []AWSResourceConfig {
 		sourceBlock = make([]SourceBlock, 1)
 
 		sourceBlock[0].Type = p.Source.Type
-		sourceBlock[0].Location = p.Source.Location
-		sourceBlock[0].GitCloneDepth = p.Source.GitCloneDepth
+		sourceBlock[0].Location = functions.GetVal(p.Source.Location)
+		sourceBlock[0].GitCloneDepth = functions.GetVal(p.Source.GitCloneDepth)
 	}
 
 	cf := CodebuildProjectConfig{
 		Config: Config{
-			Name: p.Name,
+			Name: functions.GetVal(p.Name),
 		},
-		Name:          p.Name,
-		Description:   p.Description,
-		BuildTimeout:  p.TimeoutInMinutes,
-		QueuedTimeout: p.QueuedTimeoutInMinutes,
+		Name:          functions.GetVal(p.Name),
+		Description:   functions.GetVal(p.Description),
+		BuildTimeout:  functions.GetVal(p.TimeoutInMinutes),
+		QueuedTimeout: functions.GetVal(p.QueuedTimeoutInMinutes),
 		ServiceRole:   p.ServiceRole,
-		EncryptionKey: p.EncryptionKey,
+		EncryptionKey: functions.GetVal(p.EncryptionKey),
 		Artifacts:     artifactBlock,
 		Cache:         cacheBlock,
 		Environment:   environmentBlock,

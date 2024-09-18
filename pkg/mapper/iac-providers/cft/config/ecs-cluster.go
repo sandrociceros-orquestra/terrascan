@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2021 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,7 +16,10 @@
 
 package config
 
-import "github.com/awslabs/goformation/v5/cloudformation/ecs"
+import (
+	"github.com/awslabs/goformation/v7/cloudformation/ecs"
+	"github.com/tenable/terrascan/pkg/mapper/iac-providers/cft/functions"
+)
 
 // ClusterSettingsBlock holds config for settings attribute
 type ClusterSettingsBlock struct {
@@ -62,29 +65,32 @@ type EcsClusterConfig struct {
 }
 
 // GetEcsClusterConfig returns config for aws_ecs_cluster resource
+// aws_ecs_cluster
 func GetEcsClusterConfig(e *ecs.Cluster) []AWSResourceConfig {
 	var clusterSettingsData []ClusterSettingsBlock
 	var capacityProviderStrategyData []CapacityProviderStrategyBlock
 
-	clusterSettingsData = make([]ClusterSettingsBlock, len(e.ClusterSettings))
-	for i := range e.ClusterSettings {
-		clusterSettingsData[i].Name = e.ClusterSettings[i].Name
-		clusterSettingsData[i].Value = e.ClusterSettings[i].Value
+	clusterSettings := e.ClusterSettings
+	clusterSettingsData = make([]ClusterSettingsBlock, len(clusterSettings))
+	for i, clusterSetting := range clusterSettings {
+		clusterSettingsData[i].Name = functions.GetVal(clusterSetting.Name)
+		clusterSettingsData[i].Value = functions.GetVal(clusterSetting.Value)
 	}
 
-	capacityProviderStrategyData = make([]CapacityProviderStrategyBlock, len(e.DefaultCapacityProviderStrategy))
-	for i := range e.DefaultCapacityProviderStrategy {
-		capacityProviderStrategyData[i].Base = e.DefaultCapacityProviderStrategy[i].Base
-		capacityProviderStrategyData[i].CapacityProvider = e.DefaultCapacityProviderStrategy[i].CapacityProvider
-		capacityProviderStrategyData[i].Weight = e.DefaultCapacityProviderStrategy[i].Weight
+	defaultCapacityProviderStrategy := e.DefaultCapacityProviderStrategy
+	capacityProviderStrategyData = make([]CapacityProviderStrategyBlock, len(defaultCapacityProviderStrategy))
+	for i, defaultCapacityProviderStrategy := range defaultCapacityProviderStrategy {
+		capacityProviderStrategyData[i].Base = functions.GetVal(defaultCapacityProviderStrategy.Base)
+		capacityProviderStrategyData[i].CapacityProvider = functions.GetVal(defaultCapacityProviderStrategy.CapacityProvider)
+		capacityProviderStrategyData[i].Weight = functions.GetVal(defaultCapacityProviderStrategy.Weight)
 	}
 
 	cf := EcsClusterConfig{
 		Config: Config{
-			Name: e.ClusterName,
-			Tags: e.Tags,
+			Name: functions.GetVal(e.ClusterName),
+			Tags: functions.PatchAWSTags(e.Tags),
 		},
-		ClusterName:                     e.ClusterName,
+		ClusterName:                     functions.GetVal(e.ClusterName),
 		ClusterSettings:                 clusterSettingsData,
 		DefaultCapacityProviderStrategy: capacityProviderStrategyData,
 	}
@@ -119,8 +125,8 @@ func setExecCommandConfigBlock(e *ecs.Cluster) []ExecuteCommandConfiguration {
 
 	execCommandConfigData = make([]ExecuteCommandConfiguration, 1)
 
-	execCommandConfigData[0].KmsKeyID = e.Configuration.ExecuteCommandConfiguration.KmsKeyId
-	execCommandConfigData[0].Logging = e.Configuration.ExecuteCommandConfiguration.Logging
+	execCommandConfigData[0].KmsKeyID = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.KmsKeyId)
+	execCommandConfigData[0].Logging = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.Logging)
 
 	if e.Configuration.ExecuteCommandConfiguration.LogConfiguration == nil {
 		return execCommandConfigData
@@ -134,11 +140,11 @@ func setExecCommandConfigBlock(e *ecs.Cluster) []ExecuteCommandConfiguration {
 func setLogConfigurationBlock(e *ecs.Cluster) []LogConfigurationBlock {
 	logConfigData := make([]LogConfigurationBlock, 1)
 
-	logConfigData[0].S3BucketName = e.Configuration.ExecuteCommandConfiguration.LogConfiguration.S3BucketName
-	logConfigData[0].S3KeyPrefix = e.Configuration.ExecuteCommandConfiguration.LogConfiguration.S3KeyPrefix
-	logConfigData[0].S3EncryptionEnabled = e.Configuration.ExecuteCommandConfiguration.LogConfiguration.S3EncryptionEnabled
-	logConfigData[0].CloudWatchLogGroupName = e.Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName
-	logConfigData[0].CloudWatchEncryptionEnabled = e.Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchEncryptionEnabled
+	logConfigData[0].S3BucketName = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.LogConfiguration.S3BucketName)
+	logConfigData[0].S3KeyPrefix = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.LogConfiguration.S3KeyPrefix)
+	logConfigData[0].S3EncryptionEnabled = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.LogConfiguration.S3EncryptionEnabled)
+	logConfigData[0].CloudWatchLogGroupName = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchLogGroupName)
+	logConfigData[0].CloudWatchEncryptionEnabled = functions.GetVal(e.Configuration.ExecuteCommandConfiguration.LogConfiguration.CloudWatchEncryptionEnabled)
 
 	return logConfigData
 }

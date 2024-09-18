@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -33,12 +33,11 @@ func (g *APIServer) Routes() []*Route {
 	h := NewAPIHandler()
 	routes := []*Route{
 		{verb: "GET", path: "/health", fn: h.Health},
+		{verb: "GET", path: versionedPath("/providers"), fn: h.iacProviders},
 		{verb: "POST", path: versionedPath("/{iac}/{iacVersion}/{cloud}/local/file/scan"), fn: h.scanFile},
 		{verb: "POST", path: versionedPath("/{iac}/{iacVersion}/{cloud}/remote/dir/scan"), fn: h.scanRemoteRepo},
 
 		// k8s webhook Routes
-		{verb: "GET", path: "/k8s/webhooks/{apiKey}/logs", fn: h.getLogs},
-		{verb: "GET", path: "/k8s/webhooks/logs/{uid}", fn: h.getLogByUID},
 		{verb: "POST", path: versionedPath("/k8s/webhooks/{apiKey}/scan/validate"), fn: h.validateK8SWebhook},
 	}
 

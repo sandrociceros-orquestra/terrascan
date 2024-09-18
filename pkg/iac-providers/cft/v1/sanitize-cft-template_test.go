@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@ package cftv1
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
-	"github.com/awslabs/goformation/v5"
+	"github.com/awslabs/goformation/v7"
 )
 
 func TestCFTV1_sanitizeCftTemplate(t *testing.T) {
@@ -56,7 +56,7 @@ func TestCFTV1_sanitizeCftTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a := &CFTV1{}
-			data, err := ioutil.ReadFile(tt.inputFile)
+			data, err := os.ReadFile(tt.inputFile)
 			if err != nil {
 				t.Error(err)
 			}
@@ -66,15 +66,21 @@ func TestCFTV1_sanitizeCftTemplate(t *testing.T) {
 				t.Error("CFTV1.sanitizeCftTemplate() got no error, expected parsing error")
 			}
 
-			got, err := a.sanitizeCftTemplate(data, tt.args.isYAML)
+			templateMap, err := a.sanitizeCftTemplate(tt.inputFile, data, tt.args.isYAML)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CFTV1.sanitizeCftTemplate() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
-			_, err = goformation.ParseJSON(got)
+			resData, err := json.Marshal(templateMap)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("resourceMap marshalling error; error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			_, err = goformation.ParseJSON(resData)
 			if err != nil {
-				t.Error("CFTV1.sanitizeCftTemplate() got error, expected no error")
+				t.Errorf("CFTV1.sanitizeCftTemplate() parsing error; error = %v, wantError: %v", err, nil)
 			}
 		})
 	}

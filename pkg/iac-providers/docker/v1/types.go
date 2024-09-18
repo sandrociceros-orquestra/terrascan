@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package dockerv1
 
 import "github.com/hashicorp/go-multierror"
 
-// DockerV1 truct implements the IacProvider interface
+// DockerV1 struct implements the IacProvider interface
 type DockerV1 struct {
 	errIacLoadDirs *multierror.Error
 	// absRootDir is the root directory being scanned.

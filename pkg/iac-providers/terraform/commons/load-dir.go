@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,21 +20,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/accurics/terrascan/pkg/downloader"
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/results"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	hclConfigs "github.com/hashicorp/terraform/configs"
 	"github.com/hashicorp/terraform/registry/regsrc"
 	"github.com/spf13/afero"
+	"github.com/tenable/terrascan/pkg/downloader"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/results"
+	"github.com/tenable/terrascan/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -56,7 +56,7 @@ type TerraformInstalledModuleMetaData struct {
 	Dir        string `json:"Dir"`
 }
 
-//TerraformModuleManifest holds details of all modules downloaded by terraform
+// TerraformModuleManifest holds details of all modules downloaded by terraform
 type TerraformModuleManifest struct {
 	Modules []TerraformInstalledModuleMetaData `json:"Modules"`
 }
@@ -80,15 +80,17 @@ type TerraformDirectoryLoader struct {
 	parser                   *hclConfigs.Parser
 	errIacLoadDirs           *multierror.Error
 	terraformInitModuleCache map[string]TerraformModuleManifest
+	terraformVersion         string
 }
 
 // NewTerraformDirectoryLoader creates a new terraformDirectoryLoader
-func NewTerraformDirectoryLoader(rootDirectory string, options map[string]interface{}) TerraformDirectoryLoader {
+func NewTerraformDirectoryLoader(rootDirectory, terraformVersion string, options map[string]interface{}) TerraformDirectoryLoader {
 	terraformDirectoryLoader := TerraformDirectoryLoader{
 		absRootDir:               rootDirectory,
 		remoteDownloader:         downloader.NewRemoteDownloader(),
 		parser:                   hclConfigs.NewParser(afero.NewOsFs()),
 		terraformInitModuleCache: make(map[string]TerraformModuleManifest),
+		terraformVersion:         terraformVersion,
 	}
 	for key, val := range options {
 		// keeping switch case in case more flags are added
@@ -140,12 +142,20 @@ func (t TerraformDirectoryLoader) loadDirRecursive(dirList []string) (output.All
 
 		// load current config directory
 		rootMod, diags := t.parser.LoadConfigDir(dir)
-		if diags.HasErrors() {
+		if rootMod == nil && diags.HasErrors() {
 			// log a debug message and continue with other directories
 			errMessage := fmt.Sprintf("failed to load terraform config dir '%s'. error from terraform:\n%+v\n", dir, getErrorMessagesFromDiagnostics(diags))
 			zap.S().Debug(errMessage)
 			t.addError(errMessage, dir)
 			continue
+		}
+
+		// rootMod can be considered for static analysis
+		if rootMod != nil && diags.HasErrors() {
+			// log a debug message and continue with analysis of the root mod.
+			errMessage := fmt.Sprintf("diagnostic errors while loading terraform config dir '%s'. error from terraform:\n%+v\n", dir, getErrorMessagesFromDiagnostics(diags))
+			zap.S().Debug(errMessage)
+			t.addError(errMessage, dir)
 		}
 
 		// get unified config for the current directory
@@ -159,7 +169,6 @@ func (t TerraformDirectoryLoader) loadDirRecursive(dirList []string) (output.All
 			errMessage := fmt.Sprintf("failed to build unified config. errors:\n%+v\n", getErrorMessagesFromDiagnostics(diags))
 			zap.S().Warnf(errMessage)
 			t.addError(errMessage, dir)
-			continue
 		}
 
 		/*
@@ -196,17 +205,23 @@ func (t TerraformDirectoryLoader) loadDirRecursive(dirList []string) (output.All
 					continue
 				}
 
+				resourceConfig.TerraformVersion = t.terraformVersion
+				resourceConfig.ProviderVersion = GetModuleProviderVersion(current.Config.Module, managedResource.Provider, t.terraformVersion)
 				// set module name
 				resourceConfig.ModuleName = current.Name
 
 				// resolve references
 				resourceConfig.Config = r.ResolveRefs(resourceConfig.Config.(jsonObj))
 
+				var isRemoteModule bool
 				// source file path
-				resourceConfig.Source, err = GetConfigSource(remoteURLMapping, resourceConfig, t.absRootDir)
+				resourceConfig.Source, isRemoteModule, err = GetConfigSource(remoteURLMapping, resourceConfig, t.absRootDir)
 				if err != nil {
 					t.addError(err.Error(), dir)
 					continue
+				}
+				if isRemoteModule {
+					resourceConfig.IsRemoteModule = &isRemoteModule
 				}
 
 				// tf plan directory relative path
@@ -257,11 +272,19 @@ func (t TerraformDirectoryLoader) loadDirNonRecursive() (output.AllResourceConfi
 
 	// load current config directory
 	rootMod, diags := t.parser.LoadConfigDir(t.absRootDir)
-	if diags.HasErrors() {
+	if rootMod == nil && diags.HasErrors() {
 		// log a debug message and continue with other directories
 		errMessage := fmt.Sprintf("failed to load terraform config dir '%s'. error from terraform:\n%+v\n", t.absRootDir, getErrorMessagesFromDiagnostics(diags))
 		zap.S().Debug(errMessage)
 		return nil, multierror.Append(t.errIacLoadDirs, results.DirScanErr{IacType: "terraform", Directory: t.absRootDir, ErrMessage: errMessage})
+	}
+
+	// rootMod can be considered for static analysis
+	if rootMod != nil && diags.HasErrors() {
+		// log a debug message and continue with analysis of the root mod.
+		errMessage := fmt.Sprintf("diagnostic errors while loading terraform config dir '%s'. error from terraform:\n%+v\n", t.absRootDir, getErrorMessagesFromDiagnostics(diags))
+		zap.S().Debug(errMessage)
+		t.addError(errMessage, t.absRootDir)
 	}
 
 	// get unified config for the current directory
@@ -275,7 +298,7 @@ func (t TerraformDirectoryLoader) loadDirNonRecursive() (output.AllResourceConfi
 		// loading the config dir, and continue with other directories
 		errMessage := fmt.Sprintf("failed to build unified config. errors:\n%+v\n", getErrorMessagesFromDiagnostics(diags))
 		zap.S().Warnf(errMessage)
-		return nil, multierror.Append(t.errIacLoadDirs, results.DirScanErr{IacType: "terraform", Directory: t.absRootDir, ErrMessage: ErrBuildTFConfigDir.Error()})
+		t.addError(ErrBuildTFConfigDir.Error(), t.absRootDir)
 	}
 
 	/*
@@ -317,12 +340,19 @@ func (t TerraformDirectoryLoader) loadDirNonRecursive() (output.AllResourceConfi
 
 			// resolve references
 			resourceConfig.Config = r.ResolveRefs(resourceConfig.Config.(jsonObj))
-
+			var isRemoteModule bool
 			// source file path
-			resourceConfig.Source, err = GetConfigSource(remoteURLMapping, resourceConfig, t.absRootDir)
+			resourceConfig.Source, isRemoteModule, err = GetConfigSource(remoteURLMapping, resourceConfig, t.absRootDir)
 			if err != nil {
 				errMessage := fmt.Sprintf("failed to get resource's filepath: %v", err)
 				return allResourcesConfig, multierror.Append(t.errIacLoadDirs, results.DirScanErr{IacType: "terraform", Directory: t.absRootDir, ErrMessage: errMessage})
+			}
+
+			resourceConfig.TerraformVersion = t.terraformVersion
+			resourceConfig.ProviderVersion = GetModuleProviderVersion(current.Config.Module, managedResource.Provider, t.terraformVersion)
+
+			if isRemoteModule {
+				resourceConfig.IsRemoteModule = &isRemoteModule
 			}
 
 			// add tf plan directory relative path
@@ -474,29 +504,38 @@ func GetRemoteLocation(cache map[string]string, resourcePath string) (remoteURL,
 }
 
 // GetConfigSource - get the source path for the resource
-func GetConfigSource(remoteURLMapping map[string]string, resourceConfig output.ResourceConfig, absRootDir string) (string, error) {
+func GetConfigSource(remoteURLMapping map[string]string, resourceConfig output.ResourceConfig, absRootDir string) (string, bool, error) {
 	var (
-		source string
-		err    error
-		rel    string
+		source   string
+		err      error
+		rel      string
+		isRemote bool
 	)
+
 	// Get source path if remote module used
 	remoteURL, tempDir := GetRemoteLocation(remoteURLMapping, resourceConfig.Source)
 	if remoteURL != "" {
 		rel, err = filepath.Rel(tempDir, resourceConfig.Source)
 		if err != nil {
 			errMessage := fmt.Sprintf("failed to get remote resource's %s filepath: %v", resourceConfig.Name, err)
-			return source, errors.New(errMessage)
+			return source, false, errors.New(errMessage)
 		}
-		source = filepath.Join(filepath.Clean(remoteURL), rel)
+		isRemote = true
+
+		source = filepath.Join(url.PathEscape(remoteURL), rel)
+		source, err = url.PathUnescape(source)
+		if err != nil {
+			errMessage := fmt.Sprintf("failed to get remote resource's %s filepath: %v", resourceConfig.Name, err)
+			return source, false, errors.New(errMessage)
+		}
 	} else {
 		// source file path
 		source, err = filepath.Rel(absRootDir, resourceConfig.Source)
 		if err != nil {
-			return source, err
+			return source, false, err
 		}
 	}
-	return source, nil
+	return source, isRemote, nil
 }
 
 // GetRemoteModuleIfPresentInTerraformSrc - Gets the remote module if present in terraform init cache
@@ -515,7 +554,7 @@ func (t *TerraformDirectoryLoader) GetRemoteModuleIfPresentInTerraformSrc(req *h
 				zap.S().Error("error reading terraform module metadata file", err)
 				return
 			}
-			data, err := ioutil.ReadFile(filepath.Join(terraformInitRegs, terraformInstalledModulelMetaFileName))
+			data, err := os.ReadFile(filepath.Join(terraformInitRegs, terraformInstalledModulelMetaFileName))
 			if err == nil {
 				err := json.Unmarshal(data, &modules)
 				if err != nil {
@@ -541,7 +580,7 @@ func (t *TerraformDirectoryLoader) GetRemoteModuleIfPresentInTerraformSrc(req *h
 	return
 }
 
-//versionSatisfied - check version in terraform init cache satisfies the required version constraints
+// versionSatisfied - check version in terraform init cache satisfies the required version constraints
 func versionSatisfied(foundversion string, requiredVersion hclConfigs.VersionConstraint) bool {
 	currentVersion, err := version.NewVersion(foundversion)
 	if err != nil {

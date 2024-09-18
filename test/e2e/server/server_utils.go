@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -20,16 +20,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 
-	"github.com/accurics/terrascan/pkg/policy"
-	"github.com/accurics/terrascan/test/helper"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/tenable/terrascan/pkg/policy"
+	"github.com/tenable/terrascan/test/helper"
 )
 
 const (
@@ -115,7 +114,7 @@ func MakeRemoteScanRequest(URL string, bodyAttributes map[string]interface{}, ex
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// make http rquest
+	// make http request
 	resp, err := http.DefaultClient.Do(req)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	gomega.Expect(resp).NotTo(gomega.BeNil())
@@ -135,7 +134,7 @@ func MakeRemoteScanRequest(URL string, bodyAttributes map[string]interface{}, ex
 // CompareResponseAndGoldenOutput compares the json response and golden json output
 func CompareResponseAndGoldenOutput(goldenFilePath string, responseBytes []byte) {
 	var responseEngineOutput, fileDataEngineOutput policy.EngineOutput
-	fileBytes, err := ioutil.ReadFile(goldenFilePath)
+	fileBytes, err := os.ReadFile(goldenFilePath)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	err = json.Unmarshal(responseBytes, &responseEngineOutput)

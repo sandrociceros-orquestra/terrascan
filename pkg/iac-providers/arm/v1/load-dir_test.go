@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package armv1
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -30,14 +29,14 @@ import (
 	gitConfig "gopkg.in/src-d/go-git.v4/config"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 
-	"github.com/accurics/terrascan/pkg/iac-providers/output"
-	"github.com/accurics/terrascan/pkg/utils"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/assert"
+	"github.com/tenable/terrascan/pkg/iac-providers/output"
+	"github.com/tenable/terrascan/pkg/utils"
 )
 
 const (
-	repoURL     = "https://github.com/accurics/KaiMonkey.git"
+	repoURL     = "https://github.com/tenable/kaimonkey.git"
 	branch      = "master"
 	artifacts   = "artifacts"
 	provider    = "arm"
@@ -58,7 +57,7 @@ func TestLoadIacDir(t *testing.T) {
 	}
 
 	var linkedResConf output.ResourceConfig
-	if templateData, err := ioutil.ReadFile(filepath.Join(testDataDir, "linked", "output.json")); err == nil {
+	if templateData, err := os.ReadFile(filepath.Join(testDataDir, "linked", "output.json")); err == nil {
 		err := json.Unmarshal(templateData, &linkedResConf)
 		if err != nil {
 			t.Errorf("output file not found for linked template test, got %T", err)
@@ -134,7 +133,7 @@ func TestARMMapper(t *testing.T) {
 
 	// get output json to verify
 	var testArc output.AllResourceConfigs
-	outputData, err := ioutil.ReadFile(filepath.Join(root, "output.json"))
+	outputData, err := os.ReadFile(filepath.Join(root, "output.json"))
 	if err != nil {
 		t.Errorf("error reading output.json ResourceConfig, %T", err)
 	}

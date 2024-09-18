@@ -1,5 +1,5 @@
 /*
-    Copyright (C) 2020 Accurics, Inc.
+    Copyright (C) 2022 Tenable, Inc.
 
 	Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -41,9 +41,12 @@ type ResourceConfig struct {
 	MinSeverity         string             `json:"min_severity"`
 	ContainerImages     []ContainerDetails `json:"container_images,omitempty"`
 	InitContainerImages []ContainerDetails `json:"init_container_images,omitempty"`
+	IsRemoteModule      *bool              `json:"is_remote_module,omitempty"`
+	TerraformVersion    string             `json:"terraform_version,omitempty"`
+	ProviderVersion     string             `json:"provider_version,omitempty"`
 }
 
-// ContainerDetails holds information about container name, image and vulberabilities
+// ContainerDetails holds information about container name, image and vulnerabilities
 type ContainerDetails struct {
 	Name            string          `json:"name"`
 	Image           string          `json:"image"`
